@@ -641,13 +641,20 @@ function browseSearch(){const inp=document.getElementById('browseSearch'),ta=doc
  let h=hits.map((it,i)=>`<div class="ta" onclick="browseAdd('${esc(it.n)}','${esc(it.rate)}','${esc(it.cat)}','${esc(it.pillar)}')"><span><b>${it.n}</b> · ${it.cat} <span style="color:var(--gray-500);font-size:11px">(${it.pillar})</span></span><span style="display:flex;gap:10px;align-items:center">${i===0?'<span class="aimatch">Top match</span>':''}<span style="color:var(--gray-500)">${it.rate==='$—'?'quote':it.rate+'/mo'}</span></span></div>`).join('');
  h+=`<div class="ta cust" onclick="browsePath(null,'cust')"><span>Can't find it? Start a custom request</span><span>${ic('chevronRight','ic-14')}</span></div>`;
  ta.innerHTML=h;}
+// Maps catalog item names to their actual equipment demand plan entries.
+// Only items in this map will trigger the reconcile panel — no false positives.
+const PLAN_ITEM_MAP={
+ 'Excavator 45–55T':{phase:'Sitework & Civil',dates:'Jun–Nov'},
+ 'Scissor lift 32ft':{phase:'MEP / Electrical rough-in',dates:'Oct–Jan'},
+ 'Telehandler / reach forklift 10K':{phase:'Structure',dates:'Aug–Dec'},
+ 'Tower crane (self-erect)':{phase:'Structure',dates:'Aug–Oct'},
+};
 function browseAdd(name,rate,cat,pillar){const cart=document.getElementById('browseCart');const eq=pillar==='Equipment';const quote=(rate==='$—');
- // add to (or bump) the request cart
  const existing=BROWSE_CART.find(it=>it.name===name);
  if(existing){existing.qty++;}else{BROWSE_CART.push({name,rate:parseRate(rate),qty:1,pillar,quote,code:DEFAULT_COST_CODE});}
  browseCartRefresh();updateCartBadges();
- const rateTxt=quote?'quote':rate+'/mo';
- cart.innerHTML=`${eq?`<div class="reconcile">${ic('link','ic-16')}<div><b>This matches a plan item.</b> "${name}" is on your equipment demand plan (Sitework &amp; Civil, Jun–Dec). Linking avoids double-counting demand.</div><div class="rc-acts"><button class="btn primary sm" onclick="toast('Linked to plan item')">Link to plan</button><button class="btn sm" onclick="toast('Logged as new need')">New need</button></div></div>`:''}
+ const planMatch=eq&&PLAN_ITEM_MAP[name];
+ cart.innerHTML=`${planMatch?`<div class="reconcile">${ic('link','ic-16')}<div><b>This matches a plan item.</b> "${name}" is on your equipment demand plan (${planMatch.phase}, ${planMatch.dates}). Linking avoids double-counting demand.</div><div class="rc-acts"><button class="btn primary sm" onclick="toast('Linked to plan item')">Link to plan</button><button class="btn sm" onclick="toast('Logged as new need')">New need</button></div></div>`:''}
    <div class="add-conf">${ic('check','ic-14')} <b>${name}</b> added to your request → <span style="color:var(--gray-500)">see the cart on the right</span></div>`;
  document.getElementById('browseTA').innerHTML='';document.getElementById('browseSearch').value='';
  toast(name+' added to your request');}
@@ -1004,37 +1011,14 @@ function ordTab(el,which){el.parentElement.querySelectorAll('button').forEach(b=
 
 /* ================= BILLING: dispute + approve + tabs ================= */
 function billTab(el,which){el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('bill-pending').classList.toggle('hidden',which!=='pending');document.getElementById('bill-budget').classList.toggle('hidden',which!=='budget');}
-function openDispute(){const ns=effMode('p-billing')==='northstar';
- if(!ns){
-   // V1: cost/task-code correction is the ONLY dispute path. No free-form reasons.
-   openModal(`<div class="modal-head"><div><h3>Correct cost / task code</h3><div class="sub">BILL-9012 · Excavator 45–55T · $8,400 · 2 days left in window</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div>
-   <div class="modal-body">
-     <div class="limit-note" style="background:var(--steel-050);border-color:#CFE0EF;color:var(--charcoal-700)">${ic('info','ic-16')}<div><b>V1 disputes are limited to cost / task code changes.</b> Correcting the code below reassigns this bill and writes back to YardHub. Rate, duration, and other dispute reasons open up in North Star.</div></div>
-     <div class="field-row" style="margin-bottom:6px"><div class="field"><label>Job / Dept</label><input value="004987.01"></div><div class="field"><label>Expenditure</label><input value="3005"></div><div class="field"><label>Task code</label><input value="2000"></div></div>
-     <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:8px">Full code preview <span class="code-chip">010200.3005.2000</span> · applies to this bill only.</div>
-     <div class="field"><label>Note to 02S <span class="opt">optional</span></label><textarea rows="2" placeholder="e.g. move to civil earthwork task — coded to the wrong phase">Should be coded to civil earthwork (task 2000), not general conditions.</textarea></div>
-   </div>
-   <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('Cost/task code corrected on BILL-9012 · written back to YardHub')">${ic('check','ic-14')} Save corrected code</button></div>`,true);
-   return;
- }
- // North Star: full dispute flow
- const reasons=['Wrong rate vs. MSA','Wrong cost / task code','Billed before on-rent date','Rental duration incorrect','Equipment returned / off-rented','Damaged on arrival','Other'];
- openModal(`<div class="modal-head"><div><h3>Review &amp; dispute bill</h3><div class="sub">BILL-9012 · Excavator 45–55T · $8,400 · 2 days left in window</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div>
+function openDispute(){
+ openModal(`<div class="modal-head"><div><h3>Correct cost / task code</h3><div class="sub">BILL-9012 · Excavator 45–55T · $8,400 · 2 days left in window</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div>
  <div class="modal-body">
-   <div class="modal-step"><span class="step-n">1</span><span class="step-t">Correct the cost code</span><span class="step-h">edit this bill only · written back to OMS</span></div>
    <div class="field-row" style="margin-bottom:6px"><div class="field"><label>Job / Dept</label><input value="004987.01"></div><div class="field"><label>Expenditure</label><input value="3005"></div><div class="field"><label>Task code</label><input value="2000"></div></div>
-   <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:8px">Full code preview <span class="code-chip">010200.3005.2000</span> · applies to this bill only.</div>
-   <div style="text-align:right;margin-bottom:18px"><button class="btn sm" onclick="closeModal();toast('Cost code corrected on BILL-9012')">${ic('check','ic-14')} Save cost code only</button></div>
-
-   <div class="modal-step"><span class="step-n">2</span><span class="step-t">Or raise a dispute</span><span class="step-h">pauses auto-finalization until 02S acts</span></div>
-   <div class="field"><label>Dispute reason</label><select>${reasons.map(o=>`<option>${o}</option>`).join('')}</select></div>
-   <div class="field"><label>Note to 02S</label><textarea rows="2">Rate is $8,400/mo but our MSA effective May 1 lists this class at $7,600/mo — please confirm and adjust.</textarea></div>
-   <div class="field"><label>Attach evidence</label><div class="dropzone" onclick="this.nextElementSibling.classList.remove('hidden');toast('MSA attached to dispute')">${ic('upload','ic-16')} Drop the MSA / PO or click to upload</div><span class="filechip hidden">${ic('file','ic-14')} MSA_2026_rates.pdf</span></div>
-   <div class="modal-step" style="margin-top:6px"><span class="step-n">3</span><span class="step-t">Chat with 02S</span><span class="step-h">two-way · SLA 4h</span></div>
-   <div class="thread"><div class="msg"><span class="who">You · just now</span>Flagging BILL-9012 — rate above our MSA.</div><div class="msg"><span class="who">02S ops · Priya (Equipment desk) · replying…</span>Pulling the MSA now — if the May 1 rate applies I'll re-issue at $7,600 and release the hold.</div></div>
-   <div class="chat-in" style="border:1px solid var(--gray-200);border-radius:10px;padding:6px 6px 6px 12px"><input id="dispInput" placeholder="Message 02S about this bill…" onkeydown="if(event.key==='Enter'){sendChat('dispInput','__void',false);this.value=''}" style="border:none;flex:1"><button class="btn primary sm" onclick="toast('Message sent to 02S')">${ic('send','ic-14')}</button></div>
+   <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:12px">Full code <span class="code-chip">010200.3005.2000</span> · applies to this bill only.</div>
+   <div class="field"><label>Note <span class="opt">optional</span></label><textarea rows="2" placeholder="e.g. should be coded to civil earthwork, not general conditions">Should be coded to civil earthwork (task 2000), not general conditions.</textarea></div>
  </div>
- <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('Dispute raised on BILL-9012 — finalization paused, 02S notified')">${ic('flag','ic-14')} Submit dispute</button></div>`,true);}
+ <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('Cost code corrected on BILL-9012 · written back to YardHub')">${ic('check','ic-14')} Save corrected code</button></div>`,true);}
 function approveBill(){openConfirm('Approve &amp; finalize?','Approving BILL-9012 ($8,400) routes it to YardHub for finalization. This is captured with your name, timestamp, and closes the 10-day window for this bill.','Approve → finalize',()=>toast('Bill approved → routed to YardHub for finalization'));}
 
 /* ================= command: owned-vs-rerent expand ================= */
@@ -1337,7 +1321,6 @@ function pillarPlan(id,cfg){const m=effMode(id);const pc=pillColor(cfg.name==='P
    // V1 — simple planning (dynamic rows)
    if(!V1_PILLAR_ROWS[cfg.name])V1_PILLAR_ROWS[cfg.name]=cfg.rows.map(r=>r.slice());
    return `<div class="page-head"><div><h2>${cfg.name} plan</h2><div class="desc">Plan ${cfg.kind==='service'?'services':'items'} for this job and request them against the plan.</div></div>${prodToggle(id)}</div>
-   <div class="limit-note" style="background:var(--steel-050);border-color:#CFE0EF;margin-top:12px">${ic('layers','ic-16')}<div>Equipment is the fully-built demand plan for V1. ${cfg.name} is a simple planning list for now — quantity/scope, duration, and need-by — and builds out to the full pattern after launch.</div></div>
    <div class="edp-toolbar" style="margin-top:14px"><button class="btn primary" onclick="pillV1AddRow('${cfg.name}','${cfg.kind}')">${ic('plus','ic-14')} Add ${cfg.kind==='service'?'service':'line'}</button><span style="flex:1"></span><button class="btn" onclick="pillarRequestValidate('${cfg.name}','${pc}',false)">${ic('send','ic-14')} Request selected</button></div>
    <div class="list"><div class="lrow lhead" style="grid-template-columns:26px 1.5fr .9fr 1fr 1fr .8fr 32px"><div></div><div>${cfg.kind==='service'?'Service':'Item'}</div><div>${cfg.kind==='service'?'Scope':'Qty'}</div><div>From</div><div>To</div><div>Status</div><div></div></div>
    <div id="pillV1Rows">${pillV1RowsHTML(cfg.name,pc,cfg.kind)}</div></div>`;
@@ -1355,20 +1338,13 @@ function pillV1Refresh(name){const el=document.getElementById('pillV1Rows');if(e
 function pillV1AddRow(name,kind){if(!V1_PILLAR_ROWS[name])V1_PILLAR_ROWS[name]=[];V1_PILLAR_ROWS[name].push([kind==='service'?'New service':'New line item',kind==='service'?'Define scope':'Qty —','','','new']);pillV1Refresh(name);toast((kind==='service'?'Service':'Line')+' added — set the dates and details');}
 function pillV1RemoveRow(name,i){V1_PILLAR_ROWS[name].splice(i,1);pillV1Refresh(name);toast('Line removed');}
 function pillarView(el,showId){el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));el.classList.add('on');['plan-sched','plan-list'].forEach(p=>{});const wrap=el.closest('.main');const base=showId.replace('plan-sched-','').replace('plan-list-','');wrap.querySelector('#plan-sched-'+base).classList.toggle('hidden',!showId.startsWith('plan-sched'));wrap.querySelector('#plan-list-'+base).classList.toggle('hidden',!showId.startsWith('plan-list'));}
-function pillarRequestValidate(name,pc,ns){const checks=[
-   ['Delivery / site address confirmed',true,`${PROJECT.shipTo.line1}`],
-   ['From / to dates set',true,'per line in the plan'],
-   [ns?'Taxonomy match resolved':'Scope described',true,ns?`${name} · 02S rate applies`:'free-text — 02S will map taxonomy'],
-   ['Routing resolved',true,`${name} → ${name==='Prefab'?'managed queue':'02S ops backlog'}`]
- ];
+function pillarRequestValidate(name,pc,ns){
+ const rows=V1_PILLAR_ROWS[name]||[];
  const codeBlock=ns
-   ? `<div class="vrow ok">${ic('sparkle','ic-16')}<div><b>Cost code — auto-resolved</b><div class="vh">North Star resolves the 16-digit CMiC code in the background · <span class="code-chip">010200.3005.2000</span></div></div></div>`
-   : `<div class="oc-edit"><div class="oc-lbl">${ic('edit','ic-14')} Cost code — edit before sending <span class="req">required</span></div><div class="oc-row"><input id="pillCode" value="010200.3005.2000" class="mono" oninput="pillCodeCheck()"><span class="code-chip" id="pillPrev">010200.3005.2000</span><span id="pillStatus"><span class="chip ok">${ic('check','ic-14')} 16/16</span></span></div><div class="oc-help">Full 16-digit CMiC code applied to this ${name} request before it goes to Command Center.</div></div>`;
- openModal(`<div class="modal-head"><div><h3>Submit ${name} request</h3><div class="sub">validated before send</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body"><div class="valid-list">${checks.map(c=>`<div class="vrow ${c[1]?'ok':'bad'}">${ic(c[1]?'check':'warning','ic-16')}<div><b>${c[0]}</b><div class="vh">${c[2]}</div></div></div>`).join('')}</div>${codeBlock}<div class="route-note" style="margin-top:12px">${ns?`North Star matches the request to the ${name} taxonomy, resolves coding automatically, and tracks it live to the project.`:`V1 routes this to the ${name} lead's managed queue; they fulfill in the existing process and update status.`}</div></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Keep editing</button><button class="btn primary" id="pillSendBtn" onclick="closeModal();toast('${name} request submitted — appears in 02S backlog')">${ic('send','ic-14')} Submit request</button></div>`,true);}
-function pillCodeCheck(){const v=(document.getElementById('pillCode').value||'').replace(/[^0-9.]/g,'');const digits=v.replace(/\./g,'').length;const prev=document.getElementById('pillPrev'),st=document.getElementById('pillStatus'),btn=document.getElementById('pillSendBtn');
- prev.textContent=v||'—';
- if(digits===16){st.innerHTML=`<span class="chip ok">${ic('check','ic-14')} 16/16</span>`;btn.style.pointerEvents='';btn.style.opacity='';}
- else{st.innerHTML=`<span class="chip red">${digits}/16</span>`;btn.style.pointerEvents='none';btn.style.opacity='.5';}}
+   ? `<div class="vrow ok">${ic('sparkle','ic-16')}<div><b>Cost code — auto-resolved per line</b><div class="vh">North Star resolves each line's 16-digit CMiC code in the background</div></div></div>`
+   : `<div class="oc-edit"><div class="oc-lbl">${ic('edit','ic-14')} Cost code per line <span class="req">required</span></div><div class="line-codes">${rows.map((r,i)=>`<div class="lc-row"><span class="lc-nm"><span class="pdot" style="background:${pc}"></span>${r[0]}</span><input class="mono lc-input" id="pillLineCode${i}" value="010200.3005.2000" placeholder="Job.Exp.Task" oninput="pillLineCodeCheck(${i},this)"><span class="lc-st" id="pillLineSt${i}"><span class="chip ok">${ic('check','ic-14')} 16/16</span></span></div>`).join('')}</div><div class="oc-help">Each line bills to its own CMiC code. Edit Job / Expenditure / Task per line before sending.</div></div>`;
+ openModal(`<div class="modal-head"><div><h3>Submit ${name} request</h3></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body">${codeBlock}</div><div class="modal-foot"><button class="btn" onclick="closeModal()">Keep editing</button><button class="btn primary" onclick="closeModal();toast('${name} request submitted — appears in 02S backlog')">${ic('send','ic-14')} Submit request</button></div>`,true);}
+function pillLineCodeCheck(i,inp){const v=inp.value;const d=codeDigits(v);const st=document.getElementById('pillLineSt'+i);if(st)st.innerHTML=d===16?`<span class="chip ok">${ic('check','ic-14')} 16/16</span>`:`<span class="chip red">${d}/16</span>`;}
 
 /* ================= SCREENS ================= */
 const SCREENS={
@@ -1390,7 +1366,6 @@ const SCREENS={
          <div class="item"><div class="top">${ic('truck','ic-14')} Tower crane mob</div><div class="meta">Planned · Structure phase</div></div>
        </div>
      </div>
-     <div style="font-size:11.5px;color:var(--gray-500);margin-top:10px">Barebones for V1 — only what we can source from V1 products (equipment deliveries, rentals ending, billings pending approval). The full cross-02S lookahead is North Star.</div>
    </div>
  </div>
  <div class="ns-only">
@@ -1525,7 +1500,7 @@ const SCREENS={
 `.replace('{ns}',effMode(id)==='northstar'?'North Star adds live in-transit tracking, ETAs, and delivery photos.':'Equipment-only for V1; invoice generation and all-pillar tracking follow in North Star.'),
 
 'p-billing':(id)=>`
- <div class="page-head"><div><h2>Billing & budget</h2><div class="desc">Pending billings, disputes, and how you're tracking against budget.</div></div>${prodToggle(id)}</div>
+ <div class="page-head"><div><h2>Billing & budget</h2></div>${prodToggle(id)}</div>
  <div class="tabs" style="margin-top:14px"><button class="on" onclick="billTab(this,'pending')">Pending approval</button><button onclick="billTab(this,'budget')">Budget</button></div>
  <div id="bill-pending"><div class="pb-wrap">
    <div class="list">
@@ -1538,9 +1513,7 @@ const SCREENS={
      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 class="disp" style="font-size:17px;text-transform:uppercase">BILL-9012</h3><span class="window-chip soon">2 days left</span></div>
      <div style="font-size:12.5px;color:var(--gray-500);margin-bottom:14px">Excavator 45–55T · request REQ-1058 · on-rent Jun 1</div>
      <div class="field-row"><div class="field"><label>Job / Dept</label><input value="004987.01"></div><div class="field"><label>Expenditure</label><input value="3005"></div><div class="field"><label>Task code</label><input value="2000"></div></div>
-     <div class="thread"><div class="msg"><span class="who">02S ops · May 16</span>Rate reflects the updated MSA effective May 1.</div><div class="msg"><span class="who">You · May 16</span>Confirming this ties to REQ-1058, thanks.</div></div>
-     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="approveBill()">${ic('check','ic-14')} Approve → finalize</button><button class="btn" onclick="openDispute()">${effMode(id)==='northstar'?'Raise dispute':ic('edit','ic-14')+' Correct cost code'}</button><button class="btn" onclick="toast('Cost code saved &amp; written back to YardHub')">Save cost code</button></div>
-     <div style="font-size:11px;color:var(--gray-500);margin-top:12px">${effMode(id)==='northstar'?'Every approve, edit, and dispute is captured with user, timestamp, and reason. A dispute pauses auto-finalization; unactioned bills auto-finalize at day 10.':'V1 lets you correct the cost / task code or approve. Every action is captured with user, timestamp, and reason; unactioned bills auto-finalize at day 10. Broader dispute reasons open up in North Star.'}</div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="approveBill()">${ic('check','ic-14')} Approve → finalize</button><button class="btn" onclick="openDispute()">${ic('edit','ic-14')} Correct cost code</button></div>
    </div>
  </div></div>
  <div id="bill-budget" class="hidden">
@@ -1551,7 +1524,7 @@ const SCREENS={
        <div class="bud-stat"><div class="bud-k">Remaining</div><div class="bud-n" style="color:var(--ok)">$374K</div><div class="bud-s">uncommitted</div></div><div class="bud-div"></div>
        <div class="bud-stat"><div class="bud-k">Committed</div><div class="bud-n">78%</div><div class="bud-bar"><div class="bud-fill" style="width:78%"></div></div></div>
      </div>
-     <div class="card"><div class="ch"><span class="ci k3">${ic('chart','ic-16')}</span><span class="t">Budget variance vs plan — by cost code</span><span class="sub">the 78% broken out</span></div><table class="mini"><tr><th>Cost code</th><th>Budget</th><th>Actual + committed</th><th>% used</th><th>Variance</th></tr><tr><td>31 Earthwork</td><td>$560K</td><td>$546K</td><td>98%</td><td><span class="chip ok">−2%</span></td></tr><tr><td>26 Electrical</td><td>$540K</td><td>$424K</td><td>79%</td><td><span class="chip ok">on plan</span></td></tr><tr><td>05 Structure</td><td>$600K</td><td>$356K</td><td>59%</td><td><span class="chip ok">−7%</span></td></tr><tr class="mini-total"><td><b>Total</b></td><td><b>$1,700K</b></td><td><b>$1,326K</b></td><td><b>78%</b></td><td></td></tr></table><div style="font-size:11px;color:var(--gray-500);margin-top:8px">"78% committed" on your dashboard is this total — actual plus committed ($1,326K) against the equipment budget ($1,700K). Each code shows how much of its own budget is used.</div></div>
+     <div class="card"><div class="ch"><span class="ci k3">${ic('chart','ic-16')}</span><span class="t">Budget variance vs plan — by cost code</span><span class="sub">the 78% broken out</span></div><table class="mini"><tr><th>Cost code</th><th>Budget</th><th>Actual + committed</th><th>% used</th><th>Variance</th></tr><tr><td>31 Earthwork</td><td>$560K</td><td>$546K</td><td>98%</td><td><span class="chip ok">−2%</span></td></tr><tr><td>26 Electrical</td><td>$540K</td><td>$424K</td><td>79%</td><td><span class="chip ok">on plan</span></td></tr><tr><td>05 Structure</td><td>$600K</td><td>$356K</td><td>59%</td><td><span class="chip ok">−7%</span></td></tr><tr class="mini-total"><td><b>Total</b></td><td><b>$1,700K</b></td><td><b>$1,326K</b></td><td><b>78%</b></td><td></td></tr></table></div>
    </div>
    <div class="ns-only">
      <div class="grid g3" style="margin-bottom:16px">
@@ -1645,7 +1618,6 @@ const SCREENS={
  <div class="page-head"><div><h2>Project profile</h2><div class="desc">Manage who can use the portal and how 02S reaches the project.</div></div>${prodToggle(id)}</div>
  <div class="v1-only">
    <div class="admin-bar"><div><b>You're viewing as ${admin?'an Admin':'a standard member'}.</b> <span style="color:var(--gray-500)">${admin?'Admins can edit access, add/remove members, and create projects.':'Standard members can view the roster but cannot change access or create projects.'}</span></div><button class="btn sm" onclick="toggleAdmin()">${ic('refresh','ic-14')} View as ${admin?'standard member':'admin'}</button></div>
-   <div class="limit-note" style="background:var(--steel-050);border-color:#CFE0EF">${ic('user','ic-16')}<div>Team is seeded from the system of record. <b>Project creation and access changes are admin-only</b>; everyone else has read-only visibility into the roster.</div></div>
    <div style="display:flex;justify-content:flex-end;margin:12px 0"><button class="btn ${admin?'':'disabled'}" ${admin?'':'style="opacity:.5;pointer-events:none" title="Admin only"'} onclick="createProject()">${ic('plus','ic-14')} Create project ${admin?'':ic('lock','ic-14')}</button></div>
    <div class="grid g2">
      <div class="card"><div class="ch"><span class="ci">${ic('team','ic-16')}</span><span class="t">Team roster</span>${admin?`<button class="btn sm" style="margin-left:auto" onclick="addTeammate()">${ic('plus','ic-14')} Add teammate</button>`:`<span class="chip gray" style="margin-left:auto">${ic('lock','ic-14')} Admin edits access</span>`}</div>
@@ -1684,7 +1656,6 @@ const SCREENS={
        <div class="field"><label>Link a record (optional)</label><select><option>— none —</option><option>ORD-3042 · 2× ¾-Ton 4×4</option><option>BILL-9012 · Excavator</option><option>REQ-1058 · plan item</option></select></div>
        <div class="field"><label>Message</label><textarea rows="4">Question about the delivery window on ORD-3042.</textarea></div>
        <button class="btn primary" onclick="toast('Message sent — 02S notified by email, will respond outside the portal')">${ic('send','ic-14')} Send message</button>
-       <div style="font-size:11.5px;color:var(--gray-500);margin-top:10px">V1 is send-only: routed to the right pillar contact, who's notified by email and responds outside the portal. Two-way in-portal chat comes in North Star.</div>
      </div>
      <div><div class="contact-card"><div style="font-weight:900;color:var(--charcoal);font-family:var(--disp);margin-bottom:8px">02S contacts</div>
        <div class="contact-row"><span class="ci2" style="background:var(--red-050);color:var(--red)">${ic('truck','ic-16')}</span><div><b>Equipment desk</b><br><span class="cmail">equipment@02s.mccarthy.com</span></div></div>
