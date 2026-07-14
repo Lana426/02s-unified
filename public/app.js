@@ -1453,10 +1453,11 @@ const SCREENS={
      <div id="browse-self">
        <div class="ns-only"><div class="ai-panel"><div class="aih"><div class="ico">${ic('bot','ic-16')}</div><div class="t">Ordering assistant</div><span class="ns-badge" style="margin-left:auto">North Star</span></div><div class="ctx">Tell me what you're planning — e.g. "starting MEP rough-in next month" — and I'll assemble a bundle mapped to your schedule.</div><div class="searchbar"><span class="si">${ic('bot','ic-16')}</span><input id="nsAssist" placeholder="Describe what you're planning…" onkeydown="if(event.key==='Enter')nsAssistRun()"><button class="btn primary sm" onclick="nsAssistRun()">Assemble</button></div><div id="nsAssistOut"></div></div></div>
        <div class="searchbar"><span class="si">${ic('search','ic-16')}</span><input id="browseSearch" placeholder="Search catalog…" oninput="browseSearch()" autocomplete="off"></div>
+       <div class="browse-hint">For the demo, try: <span onclick="browseFill('crane')">crane</span> · <span onclick="browseFill('excav')">excavator</span> · <span onclick="browseFill('scissor')">scissor lift</span></div>
        <div class="typeahead" id="browseTA"></div>
+       <div class="cust-bar" onclick="browsePath(null,'cust')"><div class="cb-icon">${ic('edit','ic-16')}</div><div class="cb-main"><div class="cb-t">Custom request</div><div class="cb-d">Logistics · Prof. services · anything not in the catalog</div></div>${ic('chevronRight','ic-16')}</div>
        <div id="browseCart"></div>
        ${browseCatalogHTML()}
-       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-200);text-align:center"><button class="linkbtn" onclick="browsePath(null,'cust')">${ic('edit','ic-14')} Need something custom? Start a guided request</button></div>
      </div>
      <div id="browse-cust" class="hidden">
        <div style="margin-bottom:12px"><button class="linkbtn" onclick="browsePath(null,'self')">${ic('chevronLeft','ic-14')} Back to catalog</button></div>
