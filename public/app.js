@@ -639,7 +639,7 @@ function browseSearch(){const inp=document.getElementById('browseSearch'),ta=doc
  if(!q){ta.innerHTML='';return;}
  const hits=browseAllItems().filter(it=>(it.n+' '+it.attrs+' '+(it.kw||'')+' '+it.cat+' '+it.pillar).toLowerCase().includes(q)).slice(0,6);
  let h=hits.map((it,i)=>`<div class="ta" onclick="browseAdd('${esc(it.n)}','${esc(it.rate)}','${esc(it.cat)}','${esc(it.pillar)}')"><span><b>${it.n}</b> · ${it.cat} <span style="color:var(--gray-500);font-size:11px">(${it.pillar})</span></span><span style="display:flex;gap:10px;align-items:center">${i===0?'<span class="aimatch">Top match</span>':''}<span style="color:var(--gray-500)">${it.rate==='$—'?'quote':it.rate+'/mo'}</span></span></div>`).join('');
- h+=`<div class="ta cust" onclick="browsePath(document.querySelectorAll('.path-tab')[1],'cust')"><span>Can't find it? Start a custom request</span><span>${ic('chevronRight','ic-14')}</span></div>`;
+ h+=`<div class="ta cust" onclick="browsePath(null,'cust')"><span>Can't find it? Start a custom request</span><span>${ic('chevronRight','ic-14')}</span></div>`;
  ta.innerHTML=h;}
 function browseAdd(name,rate,cat,pillar){const cart=document.getElementById('browseCart');const eq=pillar==='Equipment';const quote=(rate==='$—');
  // add to (or bump) the request cart
@@ -657,14 +657,14 @@ let BROWSE_CAT_PILLAR='Equipment';
 function browseCatSetPillar(p){BROWSE_CAT_PILLAR=p;const g=document.getElementById('browseCatGrid');if(g)g.innerHTML=browseCatGridHTML();document.querySelectorAll('#browseCatPills .bcp').forEach(el=>el.classList.toggle('on',el.dataset.p===p));}
 function browseCatGridHTML(){const p=BROWSE_CAT_PILLAR,data=CATALOG[p],ns=effMode('p-browse')==='northstar';
  const catV1=!ns&&data.level==='category';
- if(catV1){return data.cats.filter(c=>data.items.some(it=>!it.ns&&it.cat===c)).map(c=>{const cnt=data.items.filter(it=>!it.ns&&it.cat===c).length;const color=pillHex(p);return `<div class="prod cat-only cat-tile" onclick="browsePath(document.querySelectorAll('.path-tab')[1],'cust')"><div class="pimg" style="background-image:url(&quot;${prodThumb(c,color)}&quot;)"><span class="pcat">Category</span></div><div class="pb"><div class="pn">${c}</div><div class="attrs">${cnt} ${cnt===1?'offering':'offerings'} · request through guided path</div><div class="rate"><b style="font-size:13px;color:var(--gray-500)">Scoped per project</b></div></div><button class="addbtn" style="background:var(--charcoal)" onclick="event.stopPropagation();browsePath(document.querySelectorAll('.path-tab')[1],'cust')">${ic('edit','ic-14')} Start a request</button></div>`;}).join('');}
+ if(catV1){return data.cats.filter(c=>data.items.some(it=>!it.ns&&it.cat===c)).map(c=>{const cnt=data.items.filter(it=>!it.ns&&it.cat===c).length;const color=pillHex(p);return `<div class="prod cat-only cat-tile" onclick="browsePath(null,'cust')"><div class="pimg" style="background-image:url(&quot;${prodThumb(c,color)}&quot;)"><span class="pcat">Category</span></div><div class="pb"><div class="pn">${c}</div><div class="attrs">${cnt} ${cnt===1?'offering':'offerings'} · request through guided path</div><div class="rate"><b style="font-size:13px;color:var(--gray-500)">Scoped per project</b></div></div><button class="addbtn" style="background:var(--charcoal)" onclick="event.stopPropagation();browsePath(null,'cust')">${ic('edit','ic-14')} Start a request</button></div>`;}).join('');}
  const prevPillar=CURRENT_PILLAR;CURRENT_PILLAR=p; // prodCard reads CURRENT_PILLAR for color
  const items=data.items.filter(it=>ns||!it.ns);
  const html=items.map(it=>ns?prodCardNS(it):prodCard(it)).join('');
  CURRENT_PILLAR=prevPillar;
  return html;}
-function browseCatalogHTML(){const ns=effMode('p-browse')==='northstar';
- return `<div class="browse-catalog"><div class="bc-head"><div class="bc-title">${ic('box','ic-16')} Browse the full catalog</div><div class="bc-sub">${ns?'Every pillar, fully priced — add items straight to your order.':'Equipment, Prefab &amp; Procurement are published with pricing. Logistics &amp; Prof. services are category-level — start a guided request.'}</div></div>
+function browseCatalogHTML(){
+ return `<div class="browse-catalog">
    <div class="bc-pills" id="browseCatPills">${PILLARS.map(p=>`<button class="bcp ${p===BROWSE_CAT_PILLAR?'on':''}" data-p="${p}" onclick="browseCatSetPillar('${p}')"><span class="bcp-dot" style="background:${pillColor(p)}"></span>${p}</button>`).join('')}</div>
    <div class="prod-grid" id="browseCatGrid">${browseCatGridHTML()}</div>
  </div>`;}
@@ -1447,51 +1447,36 @@ const SCREENS={
 `,
 
 'p-browse':(id)=>`
- <div class="page-head"><div><h2>On-demand browse &amp; checkout</h2><div class="desc">One front door for all 02S demand — self-serve where a catalog exists, guided custom path where it doesn't.</div></div><div class="ph-actions">${cartButton()}${prodToggle(id)}</div></div>
- <div class="path-tabs">
-   <div class="path-tab on" onclick="browsePath(this,'self')"><div class="pti">${ic('cart','ic-16')}</div><div><div class="pt">Self-serve catalog</div><div class="pd">Equipment · Prefab · Procurement — published products with pricing</div></div></div>
-   <div class="path-tab" onclick="browsePath(this,'cust')"><div class="pti">${ic('edit','ic-16')}</div><div><div class="pt">Guided custom path</div><div class="pd">Logistics · Prof. services · anything non-standard</div></div></div>
- </div>
+ <div class="page-head"><div><h2>On-demand browse &amp; checkout</h2></div><div class="ph-actions">${cartButton()}${prodToggle(id)}</div></div>
  <div class="browse-wrap">
    <div>
      <div id="browse-self">
-       <div class="ns-only"><div class="ai-panel"><div class="aih"><div class="ico">${ic('bot','ic-16')}</div><div class="t">Ordering assistant</div><span class="ns-badge" style="margin-left:auto">North Star</span></div><div class="ctx">Tell me what you're planning — e.g. "starting MEP rough-in next month" — and I'll assemble a bundle mapped to your schedule.</div><div class="searchbar"><span class="si">${ic('bot','ic-16')}</span><input id="nsAssist" placeholder="Describe what you're planning…" onkeydown="if(event.key==='Enter')nsAssistRun()"><button class="btn primary sm" onclick="nsAssistRun()">Assemble</button></div><div class="demo-hint" style="margin-top:8px">${ic('bulb','ic-14')} <b>For the demo:</b> try typing <span class="dh-chip" onclick="nsAssistFill('starting MEP rough-in next month')">starting MEP rough-in next month</span> or <span class="dh-chip" onclick="nsAssistFill('pouring foundations in June')">pouring foundations in June</span></div><div id="nsAssistOut"></div></div></div>
-       <div class="demo-hint">${ic('bulb','ic-14')} <b>For the demo:</b> start typing <span class="dh-chip" onclick="browseFill('excav')">excavator</span>, <span class="dh-chip" onclick="browseFill('crane')">crane</span>, or <span class="dh-chip" onclick="browseFill('scissor')">scissor lift</span> — the catalog narrows as you type.</div>
-       <div class="searchbar"><span class="si">${ic('search','ic-16')}</span><input id="browseSearch" placeholder="Search the catalog, or type what you need in plain language…" oninput="browseSearch()" autocomplete="off"></div>
+       <div class="ns-only"><div class="ai-panel"><div class="aih"><div class="ico">${ic('bot','ic-16')}</div><div class="t">Ordering assistant</div><span class="ns-badge" style="margin-left:auto">North Star</span></div><div class="ctx">Tell me what you're planning — e.g. "starting MEP rough-in next month" — and I'll assemble a bundle mapped to your schedule.</div><div class="searchbar"><span class="si">${ic('bot','ic-16')}</span><input id="nsAssist" placeholder="Describe what you're planning…" onkeydown="if(event.key==='Enter')nsAssistRun()"><button class="btn primary sm" onclick="nsAssistRun()">Assemble</button></div><div id="nsAssistOut"></div></div></div>
+       <div class="searchbar"><span class="si">${ic('search','ic-16')}</span><input id="browseSearch" placeholder="Search catalog…" oninput="browseSearch()" autocomplete="off"></div>
        <div class="typeahead" id="browseTA"></div>
-       <div style="margin-top:10px;font-size:11.5px;color:var(--gray-500)">${effMode(id)==='northstar'?'North Star: describe the need in plain language and AI assembles a scheduled bundle.':'V1: type a few letters and the catalog list narrows as you type — pick a match, or route unmatched text to the custom path.'}</div>
        <div id="browseCart"></div>
        ${browseCatalogHTML()}
+       <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--gray-200);text-align:center"><button class="linkbtn" onclick="browsePath(null,'cust')">${ic('edit','ic-14')} Need something custom? Start a guided request</button></div>
      </div>
-     <div id="browse-cust" class="hidden"><div class="custom-form">
-       <div class="field"><label>Pillar / category <span class="req">required</span></label><select><option>Logistics</option><option>Professional services</option><option>Prefab</option><option>Equipment</option><option>Procurement</option></select><span class="fhelp">Categorized so the request routes to the right 02S team.</span></div>
-       <div class="field"><label>Describe the need</label><textarea rows="2">Warehousing — 2,000 sq ft, 3 months, climate controlled, near jobsite</textarea></div>
-       <div class="field-row"><div class="field"><label>From</label><input type="date" value="2026-07-01"></div><div class="field"><label>To</label><input type="date" value="2026-09-30"></div><div class="field"><label>Qty</label><input value="1"></div></div>
-       <div class="field"><label>Attach specs / drawings</label><div class="dropzone" onclick="document.getElementById('fchip').classList.remove('hidden');toast('File attached to order (demo)')">${ic('upload','ic-16')} Drop a file or click to upload — attached to this order</div><span class="filechip hidden" id="fchip">${ic('file','ic-14')} warehouse_layout.pdf</span></div>
-       <div style="font-size:11.5px;color:var(--gray-500)">Non-equipment surfaces in the 02S ops backlog for the pillar lead to fulfill; equipment routes to YardHub.</div>
-     </div></div>
+     <div id="browse-cust" class="hidden">
+       <div style="margin-bottom:12px"><button class="linkbtn" onclick="browsePath(null,'self')">${ic('chevronLeft','ic-14')} Back to catalog</button></div>
+       <div class="custom-form">
+         <div class="field"><label>Pillar / category <span class="req">required</span></label><select><option>Logistics</option><option>Professional services</option><option>Prefab</option><option>Equipment</option><option>Procurement</option></select></div>
+         <div class="field"><label>Describe the need</label><textarea rows="2">Warehousing — 2,000 sq ft, 3 months, climate controlled, near jobsite</textarea></div>
+         <div class="field-row"><div class="field"><label>From</label><input type="date" value="2026-07-01"></div><div class="field"><label>To</label><input type="date" value="2026-09-30"></div><div class="field"><label>Qty</label><input value="1"></div></div>
+         <div class="field"><label>Attach specs / drawings</label><div class="dropzone" onclick="document.getElementById('fchip').classList.remove('hidden');toast('File attached to order (demo)')">${ic('upload','ic-16')} Drop a file or click to upload — attached to this order</div><span class="filechip hidden" id="fchip">${ic('file','ic-14')} warehouse_layout.pdf</span></div>
+       </div>
+     </div>
    </div>
    <div class="cart">
-     <div style="font-weight:900;color:var(--charcoal);margin-bottom:10px;font-family:var(--disp)">Your request</div>
      <div id="reqLines">${browseReqLinesHTML()}</div>
      <div class="ct"><span>Est. /mo</span><span id="reqTotal">${browseReqTotal()}</span></div>
-     <!-- On-rent / off-rent dates -->
-     <div class="cart-sec"><div class="cs-h">Rental dates</div>
-       <div class="field-row" style="gap:8px"><div class="field"><label>On-rent</label><input type="date" value="2026-06-01"></div><div class="field"><label>Off-rent <span class="opt">est.</span></label><input type="date" value="2026-12-15"></div></div>
-       <span class="fhelp">Off-rent can be adjusted later from Orders when the scope wraps.</span>
+     <div class="field-row" style="gap:8px;margin-top:14px">
+       <div class="field"><label style="font-size:10px;text-transform:uppercase;letter-spacing:.04em">On-rent</label><input type="date" value="2026-06-01"></div>
+       <div class="field"><label style="font-size:10px;text-transform:uppercase;letter-spacing:.04em">Off-rent</label><input type="date" value="2026-12-15"></div>
      </div>
-     <!-- Confirm delivery address, pre-populated from project profile -->
-     <div class="cart-sec"><div class="cs-h" style="display:flex;align-items:center;gap:6px">${ic('map','ic-14')} Deliver to <span class="prefill">from project profile</span></div>
-       <div class="ship-card" id="shipCard">
-         <div class="ship-line"><b>${PROJECT.shipTo.line1}</b></div>
-         <div class="ship-line">${PROJECT.shipTo.line2}</div>
-         <div class="ship-line muted">${PROJECT.shipTo.contact} · ${PROJECT.shipTo.phone}</div>
-         <div class="ship-line muted">Receiving hours: ${PROJECT.shipTo.hours}</div>
-       </div>
-       <button class="linkbtn" onclick="editShipTo()">${ic('edit','ic-14')} Use a different address for this order</button>
-     </div>
-     <button class="btn primary" style="width:100%;margin-top:12px;justify-content:center" onclick="submitOrderValidate()">${ic('check','ic-14')} Review &amp; submit</button>
-     <div class="route-note"><b>On submit:</b> equipment routes to YardHub; other pillars surface in the 02S ops backlog. Fields are validated first.</div>
+     <div style="display:flex;align-items:center;gap:6px;margin-top:12px;font-size:12px;color:var(--charcoal-700)">${ic('map','ic-14')} <span id="shipCard">${PROJECT.shipTo.line1}, ${PROJECT.shipTo.line2}</span><button class="linkbtn" style="margin-left:auto;font-size:11px" onclick="editShipTo()">${ic('edit','ic-14')} Change</button></div>
+     <button class="btn primary" style="width:100%;margin-top:14px;justify-content:center" onclick="submitOrderValidate()">${ic('check','ic-14')} Review &amp; submit</button>
    </div>
  </div>
 `,
@@ -2114,7 +2099,7 @@ const SCREENS={
 `,
 };
 
-function browsePath(el,which){el.parentElement.querySelectorAll('.path-tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');document.getElementById('browse-self').classList.toggle('hidden',which!=='self');document.getElementById('browse-cust').classList.toggle('hidden',which!=='cust');}
+function browsePath(el,which){document.getElementById('browse-self').classList.toggle('hidden',which!=='self');document.getElementById('browse-cust').classList.toggle('hidden',which!=='cust');}
 function oppWireframeNote(){openModal(`<div class="modal-head"><div><h3>About this view</h3><div class="sub">02S Opportunities · V1 vs North Star</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body"><p style="margin:0 0 10px;color:var(--charcoal-700)">What you're seeing is a rough wireframe rebuilt from screenshots of the <b>existing 02S Opportunities product</b> as it stands today — pipeline, margin plans, and pillar breakdowns. It's live in production; we've recreated it here as HTML so it sits alongside the rest of the prototype.</p><p style="margin:0;color:var(--charcoal-700)">For <b>V1</b>, this existing product slots in to cover pursuit &amp; estimating. The full <b>Control Tower</b> — margin-plan handshake, YoY forecast, allocation flow, G&amp;A waterfall, and the return to enterprise FP&amp;A — anchors in <b>leadership's vision for the Command Tower</b> and builds toward North Star. Flip the Control Tower workspace to North Star to preview that target.</p></div><div class="modal-foot"><button class="btn primary" onclick="closeModal()">Got it</button></div>`,true);}
 function oppPillarTab(el){el.parentElement.querySelectorAll('.opp-tab').forEach(t=>t.classList.remove('on'));el.classList.add('on');toast(el.textContent.trim()+' pillar — demo shows Equipment detail');}
 function editShipTo(){openModal(`<div class="modal-head"><div><h3>Delivery address</h3><div class="sub">Pre-filled from the project profile · override for this order only</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body"><div class="field"><label>Site / gate</label><input value="${PROJECT.shipTo.line1}"></div><div class="field"><label>Address</label><input value="${PROJECT.shipTo.line2}"></div><div class="field-row"><div class="field"><label>Receiving contact</label><input value="${PROJECT.shipTo.contact}"></div><div class="field"><label>Phone</label><input value="${PROJECT.shipTo.phone}"></div></div><div class="field"><label>Receiving hours</label><input value="${PROJECT.shipTo.hours}"></div><div class="field"><label>Delivery notes</label><textarea rows="2">${PROJECT.shipTo.notes}</textarea></div></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('Delivery address updated for this order')">Save for this order</button></div>`);}
