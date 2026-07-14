@@ -100,6 +100,20 @@
   .nav .pill{margin-left:auto;font-size:9px;background:rgba(255,255,255,.14);padding:2px 7px;border-radius:20px;letter-spacing:.04em;font-weight:700;text-transform:uppercase}
   .nav-foot{margin-top:auto;padding:14px 10px 4px;border-top:1px solid rgba(255,255,255,.08);color:#8b847e;font-size:11px;display:flex;align-items:center;gap:8px}
   .nav-foot .o2smark{font-size:11px;padding:3px 7px}
+  .nav-toggle{display:flex;align-items:center;gap:8px;padding:8px 10px;background:transparent;border:none;color:#8b847e;cursor:pointer;border-radius:9px;font-size:12px;font-weight:600;transition:background .12s,color .12s;width:100%;margin-top:4px;text-align:left}
+  .nav-toggle:hover{background:rgba(255,255,255,.06);color:#cfc9c4}
+  .nav-toggle .ic-svg{flex:none;transition:transform .2s}
+  /* Collapsed sidebar */
+  .app.nav-collapsed{grid-template-columns:52px 1fr}
+  .app.nav-collapsed .nav{padding:12px 4px;overflow:visible}
+  .app.nav-collapsed .nav .grp{display:none}
+  .app.nav-collapsed .nav a{justify-content:center;padding:10px 0;gap:0;position:relative}
+  .app.nav-collapsed .nav a span:not(.pill){display:none}
+  .app.nav-collapsed .nav a .pill{display:none}
+  .app.nav-collapsed .nav-foot{display:none}
+  .app.nav-collapsed .nav-toggle{justify-content:center;padding:10px 0;border-top:1px solid rgba(255,255,255,.08);margin-top:8px}
+  .app.nav-collapsed .nav-toggle .toggle-label{display:none}
+  .app.nav-collapsed .nav-toggle .ic-svg{transform:rotate(180deg)}
 
   .main{padding:24px 28px 64px;overflow:auto}
   .page-head{display:flex;align-items:flex-end;justify-content:space-between;gap:16px;margin-bottom:16px;flex-wrap:wrap}

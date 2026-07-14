@@ -86,7 +86,7 @@ const ROLE_CFG={
  opp:{cont:'oppApp',main:'oppMain',title:'02S OPPORTUNITIES',tag:'Pursuit & estimating',nav:OPP_NAV,foot:'Pursuit & estimating'},
  'command-tower':{cont:'towerApp',main:'towerMain',title:'CONTROL TOWER',tag:'Pursuit, estimating & finance',nav:TOWER_NAV_V1,foot:'Plan to performance'}
 };
-function navHTML(role,items){return items.map(it=>it.grp?`<div class="grp">${it.grp}</div>`:`<a data-screen="${it.id}" onclick="nav('${role}','${it.id}')">${ic(it.icon)}<span>${it.label}</span></a>`).join('');}
+function navHTML(role,items){return items.map(it=>it.grp?`<div class="grp">${it.grp}</div>`:`<a data-screen="${it.id}" onclick="nav('${role}','${it.id}')" title="${it.label}">${ic(it.icon)}<span>${it.label}</span></a>`).join('');}
 function buildShell(role){
   const cfg=ROLE_CFG[role];const cont=document.getElementById(cfg.cont);
   const navItems=role==='command-tower'?towerNav():(role==='command'?commandNav():cfg.nav);
@@ -102,7 +102,7 @@ function buildShell(role){
      <button class="ic-btn" title="Account" onclick="showAccount()">${ic('user')}</button>
      <button class="home-btn" onclick="goHome()">${ic('chevronLeft','ic-14')} Roles</button>
    </div>
-   <nav class="nav">${navHTML(role,navItems)}<div class="nav-foot"><span class="o2smark">0<b>2</b>S</span> <span>${cfg.foot}</span></div></nav>
+   <nav class="nav">${navHTML(role,navItems)}<div class="nav-foot"><span class="o2smark">0<b>2</b>S</span> <span>${cfg.foot}</span></div><button class="nav-toggle" onclick="toggleNav()" title="Toggle sidebar">${ic('chevronLeft','ic-16')}<span class="toggle-label">Collapse</span></button></nav>
    <main class="main" id="${cfg.main}"></main>`;
 }
 function buildLanding(){
@@ -125,6 +125,7 @@ function towerState(){const c=document.getElementById('towerCard');if(!c)return;
  else{n.innerHTML=ic('check','ic-14')+' In V1';n.style.background='var(--gold-050)';n.style.color='var(--proc)';d.innerHTML='In V1, the existing <b>02S Opportunities</b> product — pipeline, margin plans, and pillar breakdowns. Grows into the full finance tower in North Star.';}
  b.textContent='Enter workspace →';}
 function towerClick(){enter('command-tower');}
+function toggleNav(){const app=document.querySelector('.app.show');if(app)app.classList.toggle('nav-collapsed');}
 
 function enter(role){state.role=role;
  if(role==='command-tower'){buildShell('command-tower');
