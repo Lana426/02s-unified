@@ -787,9 +787,33 @@ function renderCatGrid(){const g=document.getElementById('catGrid');if(!g)return
 /* ================= BACKLOG DATA (command) ================= */
 const STATUSES=['New','Acknowledged','In fulfillment','Fulfilled'];
 const BACKLOG=[
- {id:'REQ-1058',pillar:'Equipment',project:'Hercules Solar + BESS',item:'2× excavator 45–55T',qty:'2',need:'Jun 1',type:'Catalog',status:'New'},
- {id:'ORD-3042',pillar:'Equipment',project:'Riverside Office',item:'2× ¾-Ton 4×4',qty:'2',need:'May 20',type:'Catalog',status:'In fulfillment'},
- {id:'REQ-1071',pillar:'Equipment',project:'Mercy Hospital',item:'1× tower crane (self-erect)',qty:'1',need:'Aug 3',type:'Catalog',status:'New'},
+ {id:'REQ-1058',pillar:'Equipment',project:'Hercules Solar + BESS',item:'2× excavator 45–55T',qty:'2',need:'Jun 1',type:'Catalog',status:'New',
+  ovr:{rec:'rerent',summary:'No owned 45–55T units within 200 mi; mobilization cost from Sacramento exceeds value for this rental window.',
+   guardrails:[
+    ['Fleet availability','0 idle owned units within 200 mi — Sacramento has 1 unit but committed through Jun 8','red'],
+    ['Transport / mob cost','Sacramento yard 142 mi away · est. $4,200 mob — 4-wk rental doesn\'t recover transport cost','red'],
+    ['Utilization target','Cat class at 100% committed across portfolio — no idle capacity to draw from','warn'],
+    ['Near-term demand at source','Sacramento unit has incoming demand Jun 8 — releasing it creates a gap','warn']
+   ],
+   ns:{confPct:88,lifecycle:'W. yard fleet avg 7.2yr / 68% health — above maintenance-risk threshold; relocation not advised',demand:'Competing demand Jun 8 at Sacramento confirmed by demand plan',netCost:'Re-rent saves est. $6,800 net over window after mob + transport costs'}}},
+ {id:'ORD-3042',pillar:'Equipment',project:'Riverside Office',item:'2× ¾-Ton 4×4',qty:'2',need:'May 20',type:'Catalog',status:'In fulfillment',
+  ovr:{rec:'owned',summary:'4 idle units at Riverside yard (41% utilization vs. 70% target) — owned meets the threshold before going to market.',
+   guardrails:[
+    ['Fleet availability','4 idle ¾-Ton 4×4 units at Riverside yard · 12 mi from job site','ok'],
+    ['Transport / mob cost','12 mi · $0 est. mob cost — 3-month duration fully justifies the move','ok'],
+    ['Utilization target','Class at 41% vs. 70% target — policy requires own-fleet use before re-renting','ok'],
+    ['Near-term demand at source','No competing demand at Riverside yard through Aug 28 — units are free to commit','ok']
+   ],
+   ns:{confPct:96,lifecycle:'Units avg 2.1yr / 94% health — low maintenance risk, no lifecycle flag triggered',demand:'0 competing demand at yard through Q3 — safe to commit for full window',netCost:'Owned saves est. $8,400 vs. re-rent over the 3-month rental window'}}},
+ {id:'REQ-1071',pillar:'Equipment',project:'Mercy Hospital',item:'1× tower crane (self-erect)',qty:'1',need:'Aug 3',type:'Catalog',status:'New',
+  ovr:{rec:'rerent',summary:'No owned tower cranes in the McCarthy portfolio — specialty class always fulfilled through re-rent.',
+   guardrails:[
+    ['Fleet availability','No owned tower cranes in portfolio — specialty class not held in fleet','red'],
+    ['Transport / mob cost','n/a — no owned inventory to evaluate for this class','warn'],
+    ['Utilization target','Class not owned; utilization target doesn\'t apply','warn'],
+    ['Near-term demand at source','n/a','warn']
+   ],
+   ns:{confPct:99,lifecycle:'No owned fleet — lifecycle analysis not applicable for this class',demand:'n/a — specialty class, no owned inventory exists',netCost:'Market rate competitive with historical benchmarks; no owned alternative'}}},
  {id:'REQ-2201',pillar:'Prefab',project:'Mercy Hospital',item:'Level-2 headwall',qty:'12',need:'Aug 15',type:'Custom',status:'Acknowledged'},
  {id:'REQ-2210',pillar:'Prefab',project:'Hercules Solar + BESS',item:'Prefab MEP rack',qty:'8',need:'Sep 1',type:'Custom',status:'New'},
  {id:'REQ-2288',pillar:'Logistics',project:'Hercules Solar + BESS',item:'"need lowboy for transformer move wk of Jun 9"',qty:'1',need:'Jun 9',type:'Open text',status:'New'},
@@ -804,13 +828,17 @@ function filterBacklog(v){BACKLOG_FILTER=v;renderBacklog(v);document.querySelect
 function updateStatus(id,val){const r=BACKLOG.find(x=>x.id===id);if(r)r.status=val;toast(id+' → '+val+' · reflected on project side');}
 function backlogRowHTML(r){const eq=r.pillar==='Equipment';const ns=effMode('c-backlog')==='northstar';
  if(ns){
-   // North Star: everything routes to T3 (OMS). Read-only tracking — statuses reflect from OMS, no manual updates, no YardHub.
    const statusChip=r.status==='New'?'gray':(r.status==='Fulfilled'||r.status==='Acknowledged')?'ok':r.status==='Unable to fill'?'red':'steel';
-   return `<div class="lrow cols-back"><div class="pri">${r.id}</div><div>${r.item}<div class="brow-sub">${r.project}</div></div><div style="text-align:center">${r.qty}</div><div>${r.need}</div><div><span class="chip ${r.type==='Open text'?'steel':r.type==='Custom'?'gold':'gray'}">${r.type}</span></div><div><span class="chip ${statusChip}">${r.status}</span></div><div style="display:flex;gap:6px;justify-content:flex-end;align-items:center"><span class="oms-tag" title="Routed through T3 (OMS)">${ic('sparkle','ic-14')} OMS</span><button class="btn ghost sm" onclick="reviewRequest('${r.id}')">Track</button></div></div>`;
+   const nsOvrChip=eq&&r.ovr?`<span class="chip ${r.ovr.rec==='owned'?'ok':'steel'}" style="font-size:10px" title="OvR — ${r.ovr.ns.confPct}% confidence">${ic('sparkle','ic-14')} ${r.ovr.ns.confPct}% ${r.ovr.rec==='owned'?'Owned':'Re-rent'}</span>`:'';
+   return `<div class="lrow cols-back"><div class="pri">${r.id}</div><div>${r.item}<div class="brow-sub">${r.project}</div></div><div style="text-align:center">${r.qty}</div><div>${r.need}</div><div><span class="chip ${r.type==='Open text'?'steel':r.type==='Custom'?'gold':'gray'}">${r.type}</span></div><div><span class="chip ${statusChip}">${r.status}</span></div><div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">${nsOvrChip}<span class="oms-tag" title="Routed through T3 (OMS)">${ic('sparkle','ic-14')} OMS</span><button class="btn ghost sm" onclick="reviewRequest('${r.id}')">Review</button></div></div>`;
  }
  // V1
  let action;
- if(eq){action=`<span class="chip red" title="Routes to YardHub">→ YardHub</span>`;}
+ if(eq){
+   const ovrInfo=r.ovr?(OVR_OVERRIDES[r.id]?{rec:OVR_OVERRIDES[r.id].choice,over:true}:{rec:r.ovr.rec,over:false}):null;
+   const ovrChip=ovrInfo?`<span class="chip ${ovrInfo.rec==='owned'?'ok':'steel'}" style="font-size:10.5px">${ovrInfo.rec==='owned'?'Owned':'Re-rent'}${ovrInfo.over?' ↩':''}</span>`:'';
+   action=`${ovrChip}<span class="chip red" style="font-size:10.5px" title="Routes to YardHub">→ YH</span>`;
+ }
  else {action=r.type!=='Catalog'?`<button class="btn sm" onclick="openMap('${r.id}')">${ic('link','ic-14')} Map</button>`:`<span class="chip gray">As-is</span>`;}
  return `<div class="lrow cols-back"><div class="pri">${r.id}</div><div>${r.item}<div class="brow-sub">${r.project}</div></div><div style="text-align:center">${r.qty}</div><div>${r.need}</div><div><span class="chip ${r.type==='Open text'?'steel':r.type==='Custom'?'gold':'gray'}">${r.type}</span></div><div><select class="perm" onchange="updateStatus('${r.id}',this.value)">${STATUSES.map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}</select></div><div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">${action}<button class="btn ghost sm" onclick="reviewRequest('${r.id}')">Review</button></div></div>`;}
 function renderBacklog(f){const el=document.getElementById('backlogRows');if(!el)return;const pillars=f==='All'?PILLARS:[f];const ns=effMode('c-backlog')==='northstar';
@@ -825,13 +853,14 @@ function reviewRequest(id){const r=BACKLOG.find(x=>x.id===id);if(!r)return;const
    openModal(`<div class="modal-head"><div><h3>Track ${id}</h3><div class="sub"><span class="pdot" style="background:${pillColor(r.pillar)}"></span>${r.pillar} · ${r.project}</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body">
      <div class="field"><label>What the project submitted</label><input value='${r.item.replace(/"/g,'')}' readonly></div>
      <div class="field-row"><div class="field"><label>Qty</label><input value="${r.qty}" readonly></div><div class="field"><label>Need by</label><input value="${r.need}" readonly></div><div class="field"><label>Origin</label><input value="${r.type}" readonly></div></div>
-     <div class="limit-note" style="background:var(--steel-050);border-color:#CFE0EF;color:var(--charcoal-700)">${ic('sparkle','ic-16')}<div><b>Handled by OMS (T3).</b> This request was triaged, coded, and routed automatically. Status updates flow from OMS — nothing is set by hand here.</div></div>
+     <div class="limit-note" style="background:var(--steel-050);border-color:#CFE0EF;color:var(--charcoal-700)">${ic('sparkle','ic-16')}<div><b>Handled by OMS (T3).</b> Triaged, coded, and routed automatically — status flows from OMS.</div></div>
+     ${eq&&r.ovr?ovrPanelNsHTML(r.id,r.ovr):''}
      <div class="track-status"><div class="ts-lbl">Live status from OMS</div><div class="req-lifecycle"><span class="st ${['New','Acknowledged','Fulfilled','Archived'].indexOf(r.status)>=0?'':''} ${r.status==='New'?'on':''}">New</span><span class="arr">→</span><span class="st ${r.status==='Acknowledged'?'on':''}">Acknowledged</span><span class="arr">→</span><span class="st ${r.status==='Fulfilled'?'on':''}">Fulfilled</span><span class="arr">→</span><span class="st locked ${r.status==='Archived'?'on':''}">Archived</span></div><div style="font-size:11.5px;color:var(--gray-500);margin-top:8px">Current: <b>${r.status}</b> · synced live to the project team</div></div>
    </div><div class="modal-foot"><button class="btn primary" onclick="closeModal()">Close</button></div>`,true);return;}
  openModal(`<div class="modal-head"><div><h3>Review request ${id}</h3><div class="sub"><span class="pdot" style="background:${pillColor(r.pillar)}"></span>${r.pillar} · ${r.project}</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body">
    <div class="field"><label>What the project submitted</label><input value='${r.item.replace(/"/g,'')}' readonly></div>
    <div class="field-row"><div class="field"><label>Qty</label><input value="${r.qty}" readonly></div><div class="field"><label>Need by</label><input value="${r.need}" readonly></div><div class="field"><label>Origin</label><input value="${r.type}" readonly></div></div>
-   ${eq?`<div class="limit-note" style="background:var(--red-050);border-color:var(--red-100);color:var(--charcoal-700)">${ic('truck','ic-16')}<div><b>Equipment request — routes to YardHub.</b> Fulfillment and status flow through YardHub; owned-vs-re-rent runs in the equipment demand plan.</div></div>`:`<div class="limit-note" style="background:var(--steel-050);border-color:#CFE0EF;color:var(--charcoal-700)">${ic('info','ic-16')}<div><b>Non-equipment — managed queue.</b> The ${r.pillar.toLowerCase()} lead fulfills through the existing process (outside Command Center) and updates status here; the project sees each change.</div></div>`}
+   ${eq?`<div class="limit-note" style="background:var(--red-050);border-color:var(--red-100);color:var(--charcoal-700);margin-bottom:12px">${ic('truck','ic-16')}<div><b>Equipment request — routes to YardHub.</b> Fulfillment flows through YardHub. Review and confirm the owned-vs-re-rent recommendation below before updating status.</div></div>${r.ovr?ovrPanelV1HTML(r.id,r.ovr):''}`:`<div class="limit-note" style="background:var(--steel-050);border-color:#CFE0EF;color:var(--charcoal-700)">${ic('info','ic-16')}<div><b>Non-equipment — managed queue.</b> The ${r.pillar.toLowerCase()} lead fulfills through the existing process (outside Command Center) and updates status here; the project sees each change.</div></div>`}
    <div class="field"><label>Set status</label><select id="revStatus">${STATUSES.map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}</select></div>
    <div class="field"><label>Note to project <span class="opt">optional</span></label><textarea rows="2" placeholder="e.g. confirmed with vendor — delivery scheduled ${r.need}"></textarea></div>
  </div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button>${!eq&&r.type!=='Catalog'?`<button class="btn dark" onclick="closeModal();openMap('${id}')">${ic('link','ic-14')} Map to taxonomy</button>`:''}<button class="btn primary" onclick="updateStatus('${id}',document.getElementById('revStatus').value);closeModal()">${ic('check','ic-14')} Update &amp; notify project</button></div>`,true);}
@@ -841,6 +870,64 @@ function cPillV1RowsHTML(filter){const rows=BACKLOG.filter(r=>r.pillar!=='Equipm
  return rows.map(r=>`<div class="lrow" style="grid-template-columns:1.4fr 1.5fr .7fr .8fr 1.3fr"><div class="pri"><span class="pdot" style="background:${pillColor(r.pillar)}"></span>${r.pillar}</div><div>${r.item}<div class="brow-sub">${r.project}</div></div><div>${r.qty}</div><div>${r.need}</div><div><select class="perm" onchange="updateStatus('${r.id}',this.value);toast('${r.id} → '+this.value+' · project notified')">${STATUSES.map(s=>`<option ${s===r.status?'selected':''}>${s}</option>`).join('')}</select></div></div>`).join('');}
 function cPillV1Filter(el,filter){el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));el.classList.add('on');const box=document.getElementById('cPillV1Rows');if(box)box.innerHTML=cPillV1RowsHTML(filter);}
 function openMap(id){const r=BACKLOG.find(x=>x.id===id);openModal(`<div class="modal-head"><div><h3>Map to taxonomy</h3><div class="sub">${id} · ${r.pillar}</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body"><div class="field"><label>What the project submitted</label><input value='${r.item.replace(/"/g,'')}' readonly></div><div class="ai-panel" style="margin:0 0 14px"><div class="aih"><div class="ico">${ic('sparkle','ic-16')}</div><div class="t">Suggested taxonomy match</div></div><div class="ctx">Best 02S taxonomy classification from the request text — this categorizes the demand so it routes and reports correctly.</div><div class="ai-sug"><div class="txt"><b>Logistics › Freight › Lowboy trailer move</b><br><span class="why">Taxonomy node · routes to the Logistics desk</span></div><div class="acts"><button class="conf" onclick="closeModal();toast('${id} mapped to taxonomy · project notified')">Use match</button></div></div></div><div class="field"><label>Or pick a taxonomy node manually</label><select class="field"><option>Logistics › Freight › Lowboy trailer</option><option>Logistics › Site delivery</option><option>Equipment › Transport</option></select></div></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('${id} mapped to taxonomy · project notified')">Confirm mapping</button></div>`);}
+/* ================= OVR: owned-vs-re-rent overrides + panel builders ================= */
+const OVR_OVERRIDES={};
+function ovrPanelV1HTML(id,ovr){const ov=OVR_OVERRIDES[id];const rec=ov?ov.choice:ovr.rec;
+ const grDot=s=>({ok:'var(--ok)',warn:'var(--warn)',red:'var(--red)'}[s]||'var(--gray-300)');
+ return `<div class="ovr-panel">
+  <div class="ovr-panel-head">
+    <span class="ovr-label">Owned vs. re-rent recommendation</span>
+    <span class="chip ${rec==='owned'?'ok':'steel'}">${rec==='owned'?ic('check','ic-14')+' Owned fleet':ic('truck','ic-14')+' Re-rent'}${ov?` <span class="ovr-ov-tag">EM override</span>`:''}</span>
+    <button class="btn sm" onclick="openOvrOverride('${id}')" style="margin-left:auto">${ic('edit','ic-14')} ${ov?'Update':'Override'}</button>
+  </div>
+  <div class="ovr-summary">${ovr.summary}</div>
+  <div class="ovr-guardrails">${ovr.guardrails.map(([label,detail,status])=>`<div class="ovr-gr"><span class="ovr-gr-dot" style="background:${grDot(status)}"></span><div><b>${label}</b><span class="ovr-gr-detail">${detail}</span></div></div>`).join('')}</div>
+  ${ov?`<div class="ovr-override-note">${ic('edit','ic-14')} EM decision: <b>${ov.choice==='owned'?'Owned fleet':'Re-rent'}</b> — "${ov.reason}"</div>`:''}
+ </div>`;}
+function ovrPanelNsHTML(id,ovr){const ov=OVR_OVERRIDES[id];const ns=ovr.ns;const rec=ov?ov.choice:ovr.rec;
+ return `<div class="ai-panel" style="margin:10px 0">
+  <div class="aih">
+    <div class="ico">${ic('sparkle','ic-16')}</div>
+    <div class="t">Owned vs. re-rent &nbsp;·&nbsp; <span class="chip ${rec==='owned'?'ok':'steel'}" style="font-size:10px;vertical-align:middle">${rec==='owned'?'Owned fleet':'Re-rent'} · ${ns.confPct}% confidence${ov?' · EM override':''}</span></div>
+    <span class="ns-badge" style="margin-left:auto">North Star</span>
+  </div>
+  <div class="ctx" style="margin:8px 0 10px">
+    <div class="ovr-ns-signals">
+      <div class="ovr-nss"><span class="ovr-nss-ico" style="background:var(--red-050);color:var(--red)">${ic('chart','ic-14')}</span><div><b>Asset lifecycle</b><span>${ns.lifecycle}</span></div></div>
+      <div class="ovr-nss"><span class="ovr-nss-ico" style="background:var(--steel-050);color:var(--steel)">${ic('calendar','ic-14')}</span><div><b>Demand forecast</b><span>${ns.demand}</span></div></div>
+      <div class="ovr-nss"><span class="ovr-nss-ico" style="background:var(--ok-050);color:var(--ok)">${ic('dollar','ic-14')}</span><div><b>Net cost delta</b><span>${ns.netCost}</span></div></div>
+      <div class="ovr-nss"><span class="ovr-nss-ico" style="background:var(--gold-050);color:var(--gold)">${ic('gauge','ic-14')}</span><div><b>Confidence</b><span>${ns.confPct}% — fleet history, demand signals &amp; cost model</span></div></div>
+    </div>
+  </div>
+  ${ov?`<div class="ovr-override-note" style="margin-bottom:10px">${ic('edit','ic-14')} EM decision: <b>${ov.choice==='owned'?'Owned fleet':'Re-rent'}</b> — "${ov.reason}" <span style="color:var(--gray-500);font-size:10.5px;font-weight:600">· feeds model</span></div>`:''}
+  <div style="display:flex;align-items:center;gap:9px">
+    <button class="btn sm" onclick="openOvrOverride('${id}')">${ic('edit','ic-14')} ${ov?'Update override':'Override recommendation'}</button>
+    ${!ov?`<span style="font-size:11px;color:var(--gray-500)">Overrides are reviewed by the 02S lead and improve future recommendations</span>`:''}
+  </div>
+ </div>`;}
+function openOvrOverride(id){const r=BACKLOG.find(x=>x.id===id);if(!r?.ovr)return;
+ const ov=OVR_OVERRIDES[id];const altRec=ov?ov.choice:(r.ovr.rec==='owned'?'rerent':'owned');
+ openModal(`<div class="modal-head"><div><h3>Override OvR recommendation</h3><div class="sub">${id} · ${r.item}</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div>
+ <div class="modal-body">
+   <div class="limit-note" style="background:var(--gold-050);border-color:var(--gold-mid)">${ic('warning','ic-16')}<div><b>You're overriding a system recommendation.</b> The system suggested <b>${r.ovr.rec==='owned'?'Owned fleet':'Re-rent'}</b>. Your decision and reasoning are logged and feed the model over time.</div></div>
+   <div class="field" style="margin-bottom:12px"><label>Your decision</label>
+     <div class="seg-toggle" style="width:100%;margin-top:6px">
+       <button id="ovr-own-btn" style="flex:1" class="${altRec==='owned'?'on':''}" onclick="document.getElementById('ovr-own-btn').classList.add('on');document.getElementById('ovr-rr-btn').classList.remove('on')">${ic('check','ic-14')} Owned fleet</button>
+       <button id="ovr-rr-btn" style="flex:1" class="${altRec==='rerent'?'on':''}" onclick="document.getElementById('ovr-rr-btn').classList.add('on');document.getElementById('ovr-own-btn').classList.remove('on')">${ic('truck','ic-14')} Re-rent from market</button>
+     </div>
+   </div>
+   <div class="field"><label>Reasoning <span style="color:var(--red)">*</span></label><textarea id="ovrReason" rows="3" placeholder="e.g. Project schedule requires faster delivery than owned-fleet transport allows — re-rent premium is justified…">${ov?.reason||''}</textarea></div>
+   <div style="font-size:11.5px;color:var(--gray-500);margin-top:-6px">Required. Reviewed by the 02S lead and feeds the recommendation model.</div>
+ </div>
+ <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="submitOvrOverride('${id}')">${ic('check','ic-14')} Submit override</button></div>`);}
+function submitOvrOverride(id){
+ const reason=(document.getElementById('ovrReason')?.value||'').trim();
+ if(!reason){toast('Please add reasoning before submitting.');return;}
+ const choice=document.getElementById('ovr-own-btn')?.classList.contains('on')?'owned':'rerent';
+ OVR_OVERRIDES[id]={choice,reason,ts:new Date().toLocaleTimeString()};
+ closeModal();
+ toast(id+' → OvR overridden to '+(choice==='owned'?'Owned fleet':'Re-rent')+' · reasoning logged');
+ renderBacklog(BACKLOG_FILTER);}
 /* ================= ORDERS DATA + TRACKER ================= */
 const ORD_STAGES=['Requested','Acknowledged','In fulfillment','Delivered','On-rent','Off-rent'];
 const ORDERS=[
