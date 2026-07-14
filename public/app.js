@@ -81,7 +81,7 @@ function towerNav(){return state.mode==='northstar'?TOWER_NAV_NS:TOWER_NAV_V1;}
 function towerDefaultScreen(){return state.mode==='northstar'?'ct-main':'o-list';}
 /* role → shell config so all four workspaces share one shell/router */
 const ROLE_CFG={
- portal:{cont:'portalApp',main:'portalMain',title:'CUSTOMER PORTAL',tag:'Project team',nav:PORTAL_NAV,foot:'Rental, simplified',selector:true},
+ portal:{cont:'portalApp',main:'portalMain',title:'CUSTOMER PORTAL',tag:'Project team',nav:PORTAL_NAV,foot:'',selector:true},
  command:{cont:'commandApp',main:'commandMain',title:'COMMAND CENTER',tag:'02S operations',nav:COMMAND_NAV,foot:'One to sustain'},
  opp:{cont:'oppApp',main:'oppMain',title:'02S OPPORTUNITIES',tag:'Pursuit & estimating',nav:OPP_NAV,foot:'Pursuit & estimating'},
  'command-tower':{cont:'towerApp',main:'towerMain',title:'CONTROL TOWER',tag:'Pursuit, estimating & finance',nav:TOWER_NAV_V1,foot:'Plan to performance'}

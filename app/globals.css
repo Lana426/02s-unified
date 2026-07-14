@@ -29,7 +29,7 @@
   .ic-svg{width:18px;height:18px;flex:none;display:inline-block;vertical-align:middle}
   .ic-14{width:14px;height:14px}.ic-16{width:16px;height:16px}.ic-20{width:20px;height:20px}.ic-28{width:28px;height:28px}
 
-  .logo{display:inline-block;background-image:var(--logo-url);background-size:contain;background-repeat:no-repeat;background-position:center;width:104px;height:26px;flex:none;font-size:0;color:transparent}
+  .logo{display:inline-block;background-image:var(--logo-url);background-size:contain;background-repeat:no-repeat;background-position:center;width:136px;height:34px;flex:none;font-size:0;color:transparent}
   .logo.sm{width:80px;height:20px}
   /* the 02S sub-brand mark stays as a styled text token */
   .o2smark{display:inline-flex;align-items:center;justify-content:center;background:var(--charcoal);color:#fff;font-family:var(--disp);font-weight:900;letter-spacing:.02em;padding:5px 9px;border-radius:5px;font-size:13px;line-height:1}
