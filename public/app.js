@@ -787,7 +787,7 @@ function renderCatGrid(){const g=document.getElementById('catGrid');if(!g)return
 /* ================= BACKLOG DATA (command) ================= */
 const STATUSES=['New','Acknowledged','In fulfillment','Fulfilled'];
 const BACKLOG=[
- {id:'REQ-1058',pillar:'Equipment',project:'Hercules Solar + BESS',item:'2× excavator 45–55T',qty:'2',need:'Jun 1',type:'Catalog',status:'New',
+ {id:'REQ-1058',pillar:'Equipment',project:'Hercules Solar + BESS',item:'2× excavator 45–55T',qty:'2',need:'Jun 1',type:'Catalog',status:'New',tax:'Asset › Earthmoving › Excavator › 45-55T',taxMapped:false,
   ovr:{rec:'rerent',summary:'No owned 45–55T units within 200 mi; mobilization cost from Sacramento exceeds value for this rental window.',
    guardrails:[
     ['Fleet availability','0 idle owned units within 200 mi — Sacramento has 1 unit but committed through Jun 8','red'],
@@ -796,7 +796,7 @@ const BACKLOG=[
     ['Near-term demand at source','Sacramento unit has incoming demand Jun 8 — releasing it creates a gap','warn']
    ],
    ns:{confPct:88,lifecycle:'W. yard fleet avg 7.2yr / 68% health — above maintenance-risk threshold; relocation not advised',demand:'Competing demand Jun 8 at Sacramento confirmed by demand plan',netCost:'Re-rent saves est. $6,800 net over window after mob + transport costs'}}},
- {id:'ORD-3042',pillar:'Equipment',project:'Riverside Office',item:'2× ¾-Ton 4×4',qty:'2',need:'May 20',type:'Catalog',status:'In fulfillment',
+ {id:'ORD-3042',pillar:'Equipment',project:'Riverside Office',item:'2× ¾-Ton 4×4',qty:'2',need:'May 20',type:'Catalog',status:'In fulfillment',tax:'Asset › Light › Pickup Truck › ¾-Ton 4×4',taxMapped:true,
   ovr:{rec:'owned',summary:'4 idle units at Riverside yard (41% utilization vs. 70% target) — owned meets the threshold before going to market.',
    guardrails:[
     ['Fleet availability','4 idle ¾-Ton 4×4 units at Riverside yard · 12 mi from job site','ok'],
@@ -805,7 +805,7 @@ const BACKLOG=[
     ['Near-term demand at source','No competing demand at Riverside yard through Aug 28 — units are free to commit','ok']
    ],
    ns:{confPct:96,lifecycle:'Units avg 2.1yr / 94% health — low maintenance risk, no lifecycle flag triggered',demand:'0 competing demand at yard through Q3 — safe to commit for full window',netCost:'Owned saves est. $8,400 vs. re-rent over the 3-month rental window'}}},
- {id:'REQ-1071',pillar:'Equipment',project:'Mercy Hospital',item:'1× tower crane (self-erect)',qty:'1',need:'Aug 3',type:'Catalog',status:'New',
+ {id:'REQ-1071',pillar:'Equipment',project:'Mercy Hospital',item:'1× tower crane (self-erect)',qty:'1',need:'Aug 3',type:'Catalog',status:'New',tax:'Asset › Lifting › Tower Crane › Self-Erect',taxMapped:false,
   ovr:{rec:'rerent',summary:'No owned tower cranes in the McCarthy portfolio — specialty class always fulfilled through re-rent.',
    guardrails:[
     ['Fleet availability','No owned tower cranes in portfolio — specialty class not held in fleet','red'],
@@ -832,14 +832,15 @@ function backlogRowHTML(r){const eq=r.pillar==='Equipment';const ns=effMode('c-b
    const nsOvrChip=eq&&r.ovr?`<span class="chip ${r.ovr.rec==='owned'?'ok':'steel'}" style="font-size:10px" title="OvR — ${r.ovr.ns.confPct}% confidence">${ic('sparkle','ic-14')} ${r.ovr.ns.confPct}% ${r.ovr.rec==='owned'?'Owned':'Re-rent'}</span>`:'';
    return `<div class="lrow cols-back"><div class="pri">${r.id}</div><div>${r.item}<div class="brow-sub">${r.project}</div></div><div style="text-align:center">${r.qty}</div><div>${r.need}</div><div><span class="chip ${r.type==='Open text'?'steel':r.type==='Custom'?'gold':'gray'}">${r.type}</span></div><div><span class="chip ${statusChip}">${r.status}</span></div><div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">${nsOvrChip}<span class="oms-tag" title="Routed through T3 (OMS)">${ic('sparkle','ic-14')} OMS</span><button class="btn ghost sm" onclick="reviewRequest('${r.id}')">Review</button></div></div>`;
  }
- // V1 — Equipment: status auto-synced from YardHub; workflow is Review → confirm OvR → Send to YH
+ // V1 — Equipment: taxonomy confirm + OvR → Send to YH; status auto-synced from YardHub
  if(eq){
    const ov=OVR_OVERRIDES[r.id];
    const ovrInfo=r.ovr?(ov?{rec:ov.choice,over:true}:{rec:r.ovr.rec,over:false}):null;
    const ovrChip=ovrInfo?`<span class="chip ${ovrInfo.rec==='owned'?'ok':'steel'}" style="font-size:10px">${ovrInfo.rec==='owned'?'Owned':'Re-rent'}${ovrInfo.over?' ↩':''}</span>`:'';
    const yhSent=r.status==='In fulfillment'||r.status==='Fulfilled';
    const statusCls=r.status==='New'?'gray':r.status==='Acknowledged'?'ok':r.status==='In fulfillment'?'steel':r.status==='Unable to fill'?'red':'gray';
-   return `<div class="lrow cols-back"><div class="pri">${r.id}</div><div>${r.item}<div class="brow-sub">${r.project}</div></div><div style="text-align:center">${r.qty}</div><div>${r.need}</div><div><span class="chip ${r.type==='Open text'?'steel':r.type==='Custom'?'gold':'gray'}">${r.type}</span></div><div><span class="chip ${statusCls}" title="Auto-synced from YardHub">${r.status}</span></div><div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">${ovrChip}${yhSent?`<span class="chip ok" style="font-size:10px">${ic('check','ic-14')} Sent to YH</span>`:`<button class="btn sm" onclick="reviewRequest('${r.id}')">${ic('send','ic-14')} Review &amp; send</button>`}</div></div>`;
+   const taxCol=r.taxMapped?`<button class="tax-chip ok" onclick="reviewRequest('${r.id}')" title="${r.tax||''}">${ic('check','ic-14')} ${r.tax?(r.tax.split(' › ').slice(-2).join(' › ')):'Taxonomy'}</button>`:`<button class="tax-chip sug" onclick="reviewRequest('${r.id}')">${ic('sparkle','ic-14')} Needs confirm</button>`;
+   return `<div class="lrow cols-back"><div class="pri">${r.id}</div><div>${r.item}<div class="brow-sub">${r.project}</div></div><div style="text-align:center">${r.qty}</div><div>${r.need}</div><div>${taxCol}</div><div><span class="chip ${statusCls}" title="Auto-synced from YardHub">${r.status}</span></div><div style="display:flex;gap:6px;justify-content:flex-end;align-items:center">${ovrChip}${yhSent?`<span class="chip ok" style="font-size:10px">${ic('check','ic-14')} Sent to YH</span>`:`<button class="btn sm" onclick="reviewRequest('${r.id}')">${ic('send','ic-14')} Review &amp; send</button>`}</div></div>`;
  }
  // V1 — Non-equipment: manual status, map to catalog for non-catalog items
  const action=r.type!=='Catalog'?`<button class="btn sm" onclick="openMap('${r.id}')">${ic('link','ic-14')} Map to catalog</button>`:`<span class="chip gray">As-is</span>`;
@@ -847,11 +848,14 @@ function backlogRowHTML(r){const eq=r.pillar==='Equipment';const ns=effMode('c-b
 function renderBacklog(f){const el=document.getElementById('backlogRows');if(!el)return;const pillars=f==='All'?PILLARS:[f];const ns=effMode('c-backlog')==='northstar';
  let h='';
  pillars.forEach(p=>{const rows=BACKLOG.filter(r=>r.pillar===p);if(!rows.length)return;const nNew=rows.filter(r=>r.status==='New').length;const eq=p==='Equipment';
-   const route=ns?`${ic('sparkle','ic-14')} Routed via T3 (OMS) · live status`:(eq?'Review OvR + catalog → send to YardHub · status auto-synced':'Managed queue · map to catalog + update status manually');
+   const route=ns?`${ic('sparkle','ic-14')} Routed via T3 (OMS) · live status`:(eq?'Confirm taxonomy + OvR → send to YardHub · status auto-synced':'Managed queue · map to catalog + update status manually');
    const statusHdr=ns?'Status':(eq?'YardHub status':'Status');
-   h+=`<div class="back-group"><div class="bg-head"><span class="pdot" style="background:${pillColor(p)}"></span><b>${p}</b><span class="bg-count">${rows.length} open${nNew?` · ${nNew} new`:''}</span><span class="bg-route">${route}</span></div><div class="list"><div class="lrow cols-back lhead"><div>Ref</div><div>Item · project</div><div style="text-align:center">Qty</div><div>Need by</div><div>Origin</div><div>${statusHdr}</div><div></div></div>${rows.map(backlogRowHTML).join('')}</div></div>`;});
+   const originHdr=(!ns&&eq)?'Taxonomy':'Origin';
+   h+=`<div class="back-group"><div class="bg-head"><span class="pdot" style="background:${pillColor(p)}"></span><b>${p}</b><span class="bg-count">${rows.length} open${nNew?` · ${nNew} new`:''}</span><span class="bg-route">${route}</span></div><div class="list"><div class="lrow cols-back lhead"><div>Ref</div><div>Item · project</div><div style="text-align:center">Qty</div><div>Need by</div><div>${originHdr}</div><div>${statusHdr}</div><div></div></div>${rows.map(backlogRowHTML).join('')}</div></div>`;});
  el.innerHTML=h||`<div style="padding:24px;text-align:center;color:var(--gray-500)">No requests for this pillar.</div>`;}
-function sendToYardHub(id){const r=BACKLOG.find(x=>x.id===id);if(!r)return;r.status='In fulfillment';closeModal();toast(id+' → sent to YardHub · status now In fulfillment · project notified');renderBacklog(BACKLOG_FILTER);}
+function sendToYardHub(id){const r=BACKLOG.find(x=>x.id===id);if(!r)return;if(!r.taxMapped){toast('Confirm the taxonomy match first — taxonomy must be confirmed before sending to YardHub');return;}r.status='In fulfillment';closeModal();toast(id+' → sent to YardHub · status now In fulfillment · project notified');renderBacklog(BACKLOG_FILTER);}
+function bkTaxPick(el,val){const inp=document.getElementById('bkTaxChosen');if(inp)inp.value=val;if(el){el.parentElement.querySelectorAll('.tax-opt').forEach(b=>b.classList.remove('on'));el.classList.add('on');}}
+function backlogConfirmTax(id){const r=BACKLOG.find(x=>x.id===id);if(!r)return;const chosen=document.getElementById('bkTaxChosen')?.value||r.tax;r.tax=chosen;r.taxMapped=true;const sec=document.getElementById('bkTaxSection');if(sec)sec.innerHTML=`<div class="ovr-panel-head"><span class="ovr-label">Taxonomy match</span><span class="chip ok" style="font-size:10px">${ic('check','ic-14')} Confirmed</span></div><div class="ovr-summary" style="margin:4px 0 0">${r.tax}</div>`;renderBacklog(BACKLOG_FILTER);toast(id+' taxonomy confirmed — ready to send to YardHub');}
 function reviewRequest(id){const r=BACKLOG.find(x=>x.id===id);if(!r)return;const eq=r.pillar==='Equipment';const ns=effMode('c-backlog')==='northstar';
  if(ns){
    // North Star: read-only tracking — OMS owns fulfillment & status
@@ -862,13 +866,18 @@ function reviewRequest(id){const r=BACKLOG.find(x=>x.id===id);if(!r)return;const
      ${eq&&r.ovr?ovrPanelNsHTML(r.id,r.ovr):''}
      <div class="track-status"><div class="ts-lbl">Live status from OMS</div><div class="req-lifecycle"><span class="st ${['New','Acknowledged','Fulfilled','Archived'].indexOf(r.status)>=0?'':''} ${r.status==='New'?'on':''}">New</span><span class="arr">→</span><span class="st ${r.status==='Acknowledged'?'on':''}">Acknowledged</span><span class="arr">→</span><span class="st ${r.status==='Fulfilled'?'on':''}">Fulfilled</span><span class="arr">→</span><span class="st locked ${r.status==='Archived'?'on':''}">Archived</span></div><div style="font-size:11.5px;color:var(--gray-500);margin-top:8px">Current: <b>${r.status}</b> · synced live to the project team</div></div>
    </div><div class="modal-foot"><button class="btn primary" onclick="closeModal()">Close</button></div>`,true);return;}
- // V1 — Equipment: confirm catalog match + OvR, then send to YardHub
+ // V1 — Equipment: confirm taxonomy + OvR, then send to YardHub
  if(eq){
+   const taxOpts=(TAX_OPTS[taxKey(r.item)])||[];
+   const taxQuick=taxOpts.map(o=>`<button class="tax-opt ${o===r.tax?'on':''}" onclick="bkTaxPick(this,'${o}')">${o}</button>`).join('');
+   const taxSectionHTML=r.taxMapped
+    ?`<div class="ovr-panel" style="margin-bottom:12px" id="bkTaxSection"><div class="ovr-panel-head"><span class="ovr-label">Taxonomy match</span><span class="chip ok" style="font-size:10px">${ic('check','ic-14')} Confirmed</span></div><div class="ovr-summary" style="margin:4px 0 0">${r.tax||''}</div></div>`
+    :`<div class="ovr-panel" style="margin-bottom:12px" id="bkTaxSection"><div class="ovr-panel-head"><span class="ovr-label">Taxonomy match</span><span class="chip warn" style="font-size:10px">Needs confirmation</span></div><div class="ai-panel" style="margin:8px 0 0;padding:10px 12px"><div class="aih"><div class="ico">${ic('sparkle','ic-16')}</div><div class="t">AI-recommended taxonomy</div></div><div class="tax-rec" style="margin:6px 0 8px">${r.tax||''}</div><div style="font-size:11px;color:var(--gray-500);margin-bottom:6px">Quick options</div><div class="tax-quick">${taxQuick}</div><input id="bkTaxChosen" value="${r.tax||''}" style="display:none"><button class="btn sm" onclick="backlogConfirmTax('${id}')" style="margin-top:8px">${ic('check','ic-14')} Confirm match</button></div></div>`;
    openModal(`<div class="modal-head"><div><h3>Review &amp; send ${id}</h3><div class="sub"><span class="pdot" style="background:${pillColor(r.pillar)}"></span>${r.pillar} · ${r.project}</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body">
      <div class="field"><label>What the project submitted</label><input value='${r.item.replace(/"/g,'')}' readonly></div>
      <div class="field-row"><div class="field"><label>Qty</label><input value="${r.qty}" readonly></div><div class="field"><label>Need by</label><input value="${r.need}" readonly></div><div class="field"><label>Origin</label><input value="${r.type}" readonly></div></div>
-     <div class="limit-note" style="background:var(--gray-100);border-color:var(--gray-200);color:var(--charcoal-700);margin-bottom:12px">${ic('truck','ic-16')}<div><b>Routes to YardHub — status auto-synced.</b> Confirm the catalog match and owned vs. re-rent recommendation before sending. No manual status update needed.</div></div>
-     ${r.type==='Catalog'?`<div class="ovr-panel" style="margin-bottom:12px"><div class="ovr-panel-head"><span class="ovr-label">Catalog match</span><span class="chip ok" style="font-size:10px">${ic('check','ic-14')} Confirmed</span></div><div class="ovr-summary" style="margin:0">Matched to the 02S Equipment catalog — routes directly to YardHub for fulfillment.</div></div>`:''}
+     <div class="limit-note" style="background:var(--gray-100);border-color:var(--gray-200);color:var(--charcoal-700);margin-bottom:12px">${ic('truck','ic-16')}<div><b>Routes to YardHub — status auto-synced.</b> Confirm taxonomy match and OvR recommendation before sending.</div></div>
+     ${taxSectionHTML}
      ${r.ovr?ovrPanelV1HTML(r.id,r.ovr):''}
    </div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="sendToYardHub('${id}')">${ic('send','ic-14')} Send to YardHub</button></div>`,true);
    return;}
@@ -1270,6 +1279,21 @@ function confirmTax(id){const r=EQ_REQ.find(x=>x.id===id);const chosen=document.
 function pushYardHub(){const ready=EQ_REQ.filter(r=>r.mapped).length;const pending=EQ_REQ.filter(r=>!r.mapped).length;
  if(pending>0){openModal(`<div class="modal-head"><div><h3>Map remaining requests first</h3></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body"><div class="vrow bad">${ic('warning','ic-16')}<div><b>${pending} request${pending>1?'s':''} still need a confirmed taxonomy</b><div class="vh">YardHub needs a taxonomy node on every line. Confirm the flagged rows, then push.</div></div></div></div><div class="modal-foot"><button class="btn primary" onclick="closeModal()">Got it</button></div>`,true);return;}
  openModal(`<div class="modal-head"><div><h3>Push to YardHub</h3><div class="sub">${ready} requests · one batch push</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body"><div class="valid-list"><div class="vrow ok">${ic('check','ic-16')}<div><b>All lines taxonomy-mapped</b><div class="vh">Major › Minor › Category › Class confirmed on every request</div></div></div><div class="vrow ok">${ic('check','ic-16')}<div><b>Owned-vs-re-rent set</b><div class="vh">EM calls captured for the fleet decision</div></div></div><div class="vrow ok">${ic('link','ic-16')}<div><b>One YardHub push</b><div class="vh">Batch promoted with embedded lines · no re-entry · correlation IDs tracked</div></div></div></div></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('${ready} requests pushed to YardHub — statuses will write back')">${ic('send','ic-14')} Push ${ready} to YardHub</button></div>`,true);}
+function edpOvr(id){const r=EQ_REQ.find(x=>x.id===id);if(!r)return;
+ openModal(`<div class="modal-head"><div><h3>Owned vs. re-rent — ${id}</h3><div class="sub">${r.project} · ${r.desc}</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div>
+ <div class="modal-body">
+   <div class="limit-note" style="background:var(--gold-050);border-color:var(--gold-mid);margin-bottom:12px">${ic('gauge','ic-16')}<div><b>Fleet check complete.</b> Recommendation based on owned availability, transport cost, utilization targets, and near-term yard demand.</div></div>
+   <div class="field" style="margin-bottom:12px"><label>Your decision</label>
+     <div class="seg-toggle" style="width:100%;margin-top:6px">
+       <button id="edp-own-btn" style="flex:1" class="${r.ovr==='Use owned'?'on':''}" onclick="document.getElementById('edp-own-btn').classList.add('on');document.getElementById('edp-rr-btn').classList.remove('on')">${ic('check','ic-14')} Use owned fleet</button>
+       <button id="edp-rr-btn" style="flex:1" class="${r.ovr!=='Use owned'?'on':''}" onclick="document.getElementById('edp-rr-btn').classList.add('on');document.getElementById('edp-own-btn').classList.remove('on')">${ic('truck','ic-14')} Re-rent from market</button>
+     </div>
+   </div>
+   <div class="field"><label>Reasoning <span style="color:var(--red)">*</span></label><textarea id="edpOvrReason" rows="3" placeholder="e.g. idle unit at Riverside yard — 12 mi, fully justified for this duration…"></textarea></div>
+   <div style="font-size:11.5px;color:var(--gray-500);margin-top:-6px">Required. Logged and feeds the fleet optimization model.</div>
+ </div>
+ <div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="submitEdpOvr('${id}')">${ic('check','ic-14')} Confirm decision</button></div>`,true);}
+function submitEdpOvr(id){const r=EQ_REQ.find(x=>x.id===id);if(!r)return;const reason=(document.getElementById('edpOvrReason')?.value||'').trim();if(!reason){toast('Please add reasoning before confirming.');return;}const choice=document.getElementById('edp-own-btn')?.classList.contains('on')?'Use owned':'Re-rent';r.ovr=choice;closeModal();renderCurrent();toast(id+' → OvR set to '+choice+' · reasoning logged');}
 function showActionPlan(){const steps=[
   ['Mercy Hospital · sequence risk','var(--red)',[
     ['Pull the tower-crane buy forward to Q3','Equipment','var(--red)','Owner: Fleet ops','Before Aug 3'],
@@ -1915,13 +1939,13 @@ const SCREENS={
 
 'c-edp':(id)=>`
  <div class="page-head"><div><h2>Equipment demand plan — ops view</h2><div class="desc v1-only">Requests funnel in from project teams. 02S ops confirms the taxonomy match, sets owned-vs-re-rent, and pushes to YardHub.</div><div class="desc ns-only">Consolidated orders and aggregated demand across the portfolio. OMS handles fulfillment end-to-end — no manual routing.</div></div>${prodToggle(id)}</div>
- <div class="edp-stats" style="margin-top:14px"><div class="edp-stat"><div class="k">Active projects</div><div class="n">14</div><div class="s">contributing demand</div></div><div class="edp-stat cost"><div class="k">Planned + in-flight</div><div class="n">$18.4M</div><div class="s">equipment, next 12 mo</div></div><div class="edp-stat"><div class="k v1-only">Awaiting taxonomy</div><div class="k ns-only">Peak gap</div><div class="n v1-only">3</div><div class="n ns-only">−8</div><div class="s v1-only">requests to map</div><div class="s ns-only">tower cranes · Aug</div></div><div class="edp-stat"><div class="k">Owned coverage</div><div class="n">67%</div><div class="s">of demand fillable owned</div></div></div>
+ <div class="edp-stats" style="margin-top:14px"><div class="edp-stat"><div class="k">Active projects</div><div class="n">14</div><div class="s">contributing demand</div></div><div class="edp-stat cost"><div class="k">Planned + in-flight</div><div class="n">$18.4M</div><div class="s">equipment, next 12 mo</div></div><div class="edp-stat"><div class="k v1-only">Awaiting taxonomy</div><div class="k ns-only">Peak gap</div><div class="n v1-only">3</div><div class="n ns-only">−8</div><div class="s v1-only">requests to map</div><div class="s ns-only">tower cranes · Aug</div></div><div class="edp-stat"><div class="k">Owned coverage</div><div class="n">67%</div><div class="s">of portfolio demand met by owned fleet</div></div></div>
 
  <!-- ============ V1: taxonomy mapping + YardHub push ============ -->
  <div class="v1-only">
    <div class="card" style="margin:16px 0"><div class="ch"><span class="ci">${ic('inbox','ic-16')}</span><span class="t">Requests from project teams — map &amp; push to YardHub</span><span class="sub">confirm taxonomy · then promote</span><span style="margin-left:auto"><button class="btn primary sm" onclick="pushYardHub()">${ic('send','ic-14')} Push selected to YardHub</button></span></div>
      <div class="list"><div class="lrow lhead" style="grid-template-columns:26px 1fr 1.3fr 1.6fr .9fr 1fr"><div></div><div>Request</div><div>Asset description</div><div>Taxonomy match</div><div>Owned vs. re-rent</div><div>Status</div></div>
-       ${EQ_REQ.map(r=>`<div class="lrow" style="grid-template-columns:26px 1fr 1.3fr 1.6fr .9fr 1fr"><div><input type="checkbox" ${r.mapped?'checked':''} aria-label="select ${r.id}"></div><div class="pri">${r.id}<div class="brow-sub">${r.project}</div></div><div style="font-size:12px">${r.desc}</div><div>${r.mapped?`<button class="tax-chip ok" onclick="taxMap('${r.id}')" title="Confirmed — click to change">${ic('check','ic-14')} ${r.tax}</button>`:`<button class="tax-chip sug" onclick="taxMap('${r.id}')" title="AI-recommended — confirm or override">${ic('sparkle','ic-14')} ${r.tax} <span class="tc-need">confirm</span></button>`}</div><div><span class="chip ${r.ovr==='Use owned'?'ok':'warn'}">${r.ovr}</span></div><div><span class="chip ${r.mapped?'ok':'gray'}">${r.mapped?'Ready':'Needs map'}</span></div></div>`).join('')}
+       ${EQ_REQ.map(r=>`<div class="lrow" style="grid-template-columns:26px 1fr 1.3fr 1.6fr .9fr 1fr"><div><input type="checkbox" ${r.mapped?'checked':''} aria-label="select ${r.id}"></div><div class="pri">${r.id}<div class="brow-sub">${r.project}</div></div><div style="font-size:12px">${r.desc}</div><div>${r.mapped?`<button class="tax-chip ok" onclick="taxMap('${r.id}')" title="Confirmed — click to change">${ic('check','ic-14')} ${r.tax}</button>`:`<button class="tax-chip sug" onclick="taxMap('${r.id}')" title="AI-recommended — confirm or override">${ic('sparkle','ic-14')} ${r.tax} <span class="tc-need">confirm</span></button>`}</div><div><button class="tax-chip ${r.ovr==='Use owned'?'ok':'sug'}" onclick="edpOvr('${r.id}')" title="Click to update OvR decision">${r.ovr} ${ic('edit','ic-14')}</button></div><div><span class="chip ${r.mapped?'ok':'gray'}">${r.mapped?'Ready':'Needs map'}</span></div></div>`).join('')}
      </div>
      <div style="font-size:11px;color:var(--gray-500);margin-top:10px">Each request arrives with a free-text description and an AI-recommended taxonomy node (Major › Minor › Category › Class). Ops confirms or overrides it, checks the owned-vs-re-rent call, then promotes the batch as a single YardHub push — no re-entry.</div>
    </div>
