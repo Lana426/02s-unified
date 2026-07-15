@@ -1536,7 +1536,7 @@ const SCREENS={
      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px"><h3 class="disp" style="font-size:17px;text-transform:uppercase">BILL-9012</h3><span class="window-chip soon">2 days left</span></div>
      <div style="font-size:12.5px;color:var(--gray-500);margin-bottom:14px">Excavator 45–55T · request REQ-1058 · on-rent Jun 1</div>
      <div class="field-row"><div class="field"><label>Job / Dept</label><input value="004987.01"></div><div class="field"><label>Expenditure</label><input value="3005"></div><div class="field"><label>Task code</label><input value="2000"></div></div>
-     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="approveBill()">${ic('check','ic-14')} Approve → finalize</button><button class="btn" onclick="openDispute()">${ic('edit','ic-14')} Correct cost code</button></div>
+     <div style="display:flex;gap:8px;flex-wrap:wrap"><button class="btn primary" onclick="approveBill()">${ic('check','ic-14')} Approve → finalize</button><button class="btn" onclick="openDispute()">${effMode(id)==='northstar'?ic('flag','ic-14')+' Dispute bill':ic('edit','ic-14')+' Correct cost code'}</button></div>
    </div>
  </div></div>
  <div id="bill-budget" class="hidden">
