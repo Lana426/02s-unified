@@ -1025,10 +1025,10 @@ function openDispute(){const ns=effMode('p-billing')==='northstar';
  const reasons=['Wrong rate vs. MSA','Wrong cost / task code','On-rent date incorrect','Off-rent date incorrect','Rental duration incorrect','Equipment returned / off-rented early','Equipment not delivered / no-show','Damaged on arrival','Duplicate bill','Other'];
  openModal(`<div class="modal-head"><div><h3>Dispute bill</h3><div class="sub">BILL-9012 · Excavator 45–55T · $8,400 · 2 days left in window</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div>
  <div class="modal-body">
-   <div class="modal-step"><span class="step-n">1</span><span class="step-t">Correct cost / task code</span><span class="step-h">edit this bill only · written back to OMS</span></div>
+   <div class="modal-step"><span class="step-n">1</span><span class="step-t">Correct cost / task code</span></div>
    <div class="field-row" style="margin-bottom:6px"><div class="field"><label>Job / Dept</label><input value="004987.01"></div><div class="field"><label>Expenditure</label><input value="3005"></div><div class="field"><label>Task code</label><input value="2000"></div></div>
    <div style="font-size:11.5px;color:var(--gray-500);margin-bottom:14px">Full code <span class="code-chip">010200.3005.2000</span> · applies to this bill only. <button class="btn sm" style="margin-left:6px" onclick="closeModal();toast('Cost code corrected on BILL-9012')">${ic('check','ic-14')} Save code only</button></div>
-   <div class="modal-step"><span class="step-n">2</span><span class="step-t">Raise a dispute</span><span class="step-h">pauses auto-finalization · 02S responds within 4h</span></div>
+   <div class="modal-step"><span class="step-n">2</span><span class="step-t">Raise a dispute</span></div>
    <div class="field"><label>Dispute reason</label><select>${reasons.map(o=>`<option>${o}</option>`).join('')}</select></div>
    <div class="field-row"><div class="field"><label>On-rent date on bill</label><input type="date" value="2026-06-01"></div><div class="field"><label>Actual on-rent date</label><input type="date" value="2026-06-01"></div></div>
    <div class="field-row"><div class="field"><label>Off-rent date on bill</label><input type="date" value="2026-12-15"></div><div class="field"><label>Actual off-rent date</label><input type="date" value="2026-12-15"></div></div>
