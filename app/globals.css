@@ -1021,4 +1021,74 @@
     .cat-wrap,.browse-wrap,.pb-wrap,.chatwrap{grid-template-columns:1fr} .prod-grid{grid-template-columns:1fr 1fr}
     .edp-stats{grid-template-columns:1fr 1fr} .add-grid{grid-template-columns:1fr 1fr} .look{grid-template-columns:1fr}
     .g2-row{grid-template-columns:170px 1fr 70px} #edp-schedule .g2-row{grid-template-columns:170px 1fr 70px 44px} .today-overlay{left:calc(170px + (100% - 240px) * 0.175)}
+    .mob-menu-btn{display:none}
+  }
+
+  /* ===== Mobile ===== */
+  @media (max-width:768px){
+    /* hamburger visible; desktop nav-toggle hidden */
+    .mob-menu-btn{display:flex !important}
+    .nav-toggle{display:none}
+
+    /* nav as slide-in drawer */
+    .nav{display:flex !important;position:fixed;left:0;top:62px;height:calc(100vh - 62px);width:240px;transform:translateX(-100%);transition:transform .22s ease;z-index:60;box-shadow:none}
+    .app.mob-nav-open .nav{transform:translateX(0);box-shadow:4px 0 24px rgba(0,0,0,.22)}
+    /* dim backdrop when nav open */
+    .app.mob-nav-open::before{content:'';position:fixed;inset:62px 0 0 0;background:rgba(0,0,0,.35);z-index:59}
+
+    /* topbar: tighten up */
+    .topbar{padding:0 12px;gap:8px}
+    .app-title .role-tag{display:none}
+    .selector .k{display:none}
+    .selector .v{font-size:12px}
+    .home-btn span:not(.ic-svg){display:none}
+
+    /* main content */
+    .main{padding:16px 14px 80px}
+    .page-head{flex-direction:column;align-items:flex-start;gap:10px}
+    .page-head h2{font-size:21px}
+    .ph-actions{width:100%;justify-content:flex-start}
+
+    /* grids all stack */
+    .g2,.g3,.g4{grid-template-columns:1fr !important}
+    .card.span2,.card.span3{grid-column:auto}
+
+    /* browse: stack catalog above cart */
+    .browse-wrap{grid-template-columns:1fr}
+    .cart{position:static;width:100%}
+
+    /* field rows stack */
+    .field-row{grid-template-columns:1fr !important}
+
+    /* tables: scroll horizontally */
+    .list{overflow-x:auto}
+    table.mini{min-width:480px}
+    .lrow{font-size:12px}
+
+    /* modals: bottom sheet */
+    .modal-overlay{padding:0;align-items:flex-end}
+    .modal{border-radius:20px 20px 0 0;max-width:100%;max-height:92vh;width:100%}
+
+    /* prod grid single column */
+    .prod-grid{grid-template-columns:1fr !important}
+
+    /* gantt: horizontal scroll */
+    .gantt2,.la-gantt{overflow-x:auto}
+    .g2-row{grid-template-columns:140px 1fr 60px;min-width:420px}
+    #edp-schedule .g2-row{grid-template-columns:140px 1fr 60px 40px;min-width:460px}
+
+    /* toast: full-width at bottom */
+    #toast{left:12px;right:12px;width:auto;transform:translateY(20px);text-align:center}
+    #toast.show{transform:translateY(0)}
+
+    /* misc tightening */
+    .tabs{overflow-x:auto;white-space:nowrap}
+    .tabs button{padding:10px 12px}
+    .bud-summary{flex-direction:column;gap:10px}
+    .look{gap:10px}
+    .pb-wrap{flex-direction:column}
+    .bill-detail{padding:14px}
+    .cust-bar{margin:8px 0 12px}
+    .edp-toolbar{flex-wrap:wrap;gap:8px}
+    .roster .mrow{flex-direction:column;align-items:flex-start;gap:6px}
   }

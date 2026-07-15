@@ -39,7 +39,8 @@ const ICONS={
  link:'<path d="M10 13a5 5 0 0 0 7.54.54l3-3a5 5 0 0 0-7.07-7.07l-1.72 1.71"/><path d="M14 11a5 5 0 0 0-7.54-.54l-3 3a5 5 0 0 0 7.07 7.07l1.71-1.71"/>',
  map:'<polygon points="1 6 8 3 16 6 23 3 23 18 16 21 8 18 1 21 1 6"/><line x1="8" y1="3" x2="8" y2="18"/><line x1="16" y1="6" x2="16" y2="21"/>',
  filter:'<polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3"/>',
- refresh:'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>'
+ refresh:'<polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/>',
+ menu:'<line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/>'
 };
 function ic(name,cls){return `<svg class="ic-svg ${cls||''}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">${ICONS[name]||''}</svg>`;}
 
@@ -92,6 +93,7 @@ function buildShell(role){
   const navItems=role==='command-tower'?towerNav():(role==='command'?commandNav():cfg.nav);
   cont.innerHTML=`
    <div class="topbar">
+     <button class="mob-menu-btn ic-btn" onclick="toggleMobNav(this)" title="Menu">${ic('menu','ic-20')}</button>
      <span class="logo" title="McCarthy">McCarthy</span>
      <span class="app-title">02S <span class="accent">${cfg.title}</span><span class="role-tag">${cfg.tag}</span></span>
      <span class="spacer"></span>
@@ -137,7 +139,9 @@ function enter(role){state.role=role;
  document.getElementById('landing').classList.add('hidden');Object.keys(ROLE_CFG).forEach(r=>document.getElementById(ROLE_CFG[r].cont).classList.toggle('show',r===role));setNavActive(role,state.screen[role]);window.scrollTo(0,0);renderCurrent();}
 function goHome(){state.role='landing';Object.keys(ROLE_CFG).forEach(r=>document.getElementById(ROLE_CFG[r].cont).classList.remove('show'));document.getElementById('landing').classList.remove('hidden');window.scrollTo(0,0);}
 function setNavActive(role,id){const cfg=ROLE_CFG[role];if(!cfg)return;const nv=document.querySelector('#'+cfg.cont+' .nav');if(nv)nv.querySelectorAll('a[data-screen]').forEach(a=>a.classList.toggle('active',a.dataset.screen===id));}
-function nav(role,id){state.screen[role]=id;setNavActive(role,id);renderCurrent();window.scrollTo(0,0);}
+function nav(role,id){state.screen[role]=id;setNavActive(role,id);renderCurrent();window.scrollTo(0,0);closeMobNav();}
+function toggleMobNav(btn){const app=btn.closest('.app');app.classList.toggle('mob-nav-open');}
+function closeMobNav(){document.querySelectorAll('.app.mob-nav-open').forEach(a=>a.classList.remove('mob-nav-open'));}
 function renderCurrent(){const cfg=ROLE_CFG[state.role];if(cfg)renderScreen(state.role,state.screen[state.role],document.getElementById(cfg.main));}
 function renderScreen(role,id,host){const fn=SCREENS[id];host.className='main '+modeClass(id);host.innerHTML=fn?fn(id):stub('Coming soon','This screen is stubbed.');if(id==='p-edp'||id==='c-edp')requestAnimationFrame(initEDPDrag);if(['p-edp','p-prefab','p-proc','p-log','p-profsvc'].includes(id))requestAnimationFrame(initNsDrag);if(id==='p-catalog'){CAT_VIEW='landing';renderCatalog();}if(id==='c-backlog')renderBacklog(BACKLOG_FILTER);if(id==='c-capex')refreshCapex();if(id==='c-billing')billRefresh();requestAnimationFrame(updateCartBadges);}
 function stub(t,d,f){return `<div class="placeholder"><h3>${t}</h3><p>${d}</p>${f?`<div class="feat">${f.map(x=>`<span>${x}</span>`).join('')}</div>`:''}</div>`;}
