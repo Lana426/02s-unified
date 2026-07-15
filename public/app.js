@@ -87,25 +87,40 @@ const ROLE_CFG={
  opp:{cont:'oppApp',main:'oppMain',title:'02S OPPORTUNITIES',tag:'Pursuit & estimating',nav:OPP_NAV,foot:'Pursuit & estimating'},
  'command-tower':{cont:'towerApp',main:'towerMain',title:'CONTROL TOWER',tag:'Pursuit, estimating & finance',nav:TOWER_NAV_V1,foot:'Plan to performance'}
 };
+const MOB_TABS={
+ portal:[{id:'p-dash',label:'Home',icon:'grid'},{id:'p-browse',label:'Browse',icon:'cart'},{id:'p-orders',label:'Orders',icon:'clipboard'},{id:'p-billing',label:'Billing',icon:'receipt'}],
+ command:[{id:'c-dash',label:'Overview',icon:'grid'},{id:'c-backlog',label:'Backlog',icon:'inbox'},{id:'c-capex',label:'CAPEX',icon:'chart'},{id:'c-billing',label:'Billing',icon:'receipt'}],
+ 'command-tower':[{id:'o-list',label:'Opps',icon:'chart'},{id:'o-detail',label:'Margin',icon:'dollar'}]
+};
 function navHTML(role,items){return items.map(it=>it.grp?`<div class="grp">${it.grp}</div>`:`<a data-screen="${it.id}" onclick="nav('${role}','${it.id}')" title="${it.label}">${ic(it.icon)}<span>${it.label}</span></a>`).join('');}
 function buildShell(role){
   const cfg=ROLE_CFG[role];const cont=document.getElementById(cfg.cont);
   const navItems=role==='command-tower'?towerNav():(role==='command'?commandNav():cfg.nav);
+  const tabs=MOB_TABS[role]||[];
+  const tabBar=tabs.length?`<div class="mob-tab-bar" id="mobTabBar_${role}">${tabs.map(t=>`<button class="mtb-item${state.screen[role]===t.id?' active':''}" data-screen="${t.id}" onclick="nav('${role}','${t.id}')">${ic(t.icon,'ic-22')}<span>${t.label}</span></button>`).join('')}<button class="mtb-item" onclick="openMobMore('${role}')">${ic('menu','ic-22')}<span>More</span></button></div>`:'';
   cont.innerHTML=`
    <div class="topbar">
-     <button class="mob-menu-btn ic-btn" onclick="toggleMobNav(this)" title="Menu">${ic('menu','ic-20')}</button>
      <span class="logo" title="McCarthy">McCarthy</span>
      <span class="app-title">02S <span class="accent">${cfg.title}</span><span class="role-tag">${cfg.tag}</span></span>
      <span class="spacer"></span>
      ${globalSwitchHTML()}
-     ${cfg.selector?`<div class="selector"><span>${ic('box','ic-16')}</span><span><span class="k">Project</span><span class="v">Hercules Solar + BESS</span></span>${ic('chevronDown','ic-14')}</div>`:''}
-     <button class="ic-btn" title="Notifications" onclick="showNotifications()">${ic('bell')}</button>
-     <button class="ic-btn" title="Help" onclick="showHelp()">${ic('help')}</button>
-     <button class="ic-btn" title="Account" onclick="showAccount()">${ic('user')}</button>
-     <button class="home-btn" onclick="goHome()">${ic('chevronLeft','ic-14')} Roles</button>
+     ${cfg.selector?`<div class="selector desk-only"><span>${ic('box','ic-16')}</span><span><span class="k">Project</span><span class="v">Hercules Solar + BESS</span></span>${ic('chevronDown','ic-14')}</div>`:''}
+     <button class="ic-btn desk-only" title="Notifications" onclick="showNotifications()">${ic('bell')}</button>
+     <button class="ic-btn desk-only" title="Help" onclick="showHelp()">${ic('help')}</button>
+     <button class="ic-btn desk-only" title="Account" onclick="showAccount()">${ic('user')}</button>
+     <button class="home-btn desk-only" onclick="goHome()">${ic('chevronLeft','ic-14')} Roles</button>
    </div>
    <nav class="nav">${navHTML(role,navItems)}<div class="nav-foot"><span class="o2smark">0<b>2</b>S</span> <span>${cfg.foot}</span></div><button class="nav-toggle" onclick="toggleNav()" title="Toggle sidebar">${ic('chevronLeft','ic-16')}<span class="toggle-label">Collapse</span></button></nav>
-   <main class="main" id="${cfg.main}"></main>`;
+   <main class="main" id="${cfg.main}"></main>
+   ${tabBar}`;
+}
+function openMobMore(role){
+  const items=role==='command-tower'?towerNav():(role==='command'?commandNav():PORTAL_NAV);
+  const html=items.map(it=>it.grp
+    ?`<div class="mob-more-grp">${it.grp}</div>`
+    :`<button class="mob-more-item" onclick="nav('${role}','${it.id}');closeModal()">${ic(it.icon,'ic-20')}<span>${it.label}</span>${ic('chevronRight','ic-14')}</button>`
+  ).join('');
+  openModal(`<div class="modal-head"><div><h3>Navigation</h3></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body" style="padding:8px 0">${html}</div>`);
 }
 function buildLanding(){
   document.getElementById('landing').innerHTML=`
@@ -139,9 +154,7 @@ function enter(role){state.role=role;
  document.getElementById('landing').classList.add('hidden');Object.keys(ROLE_CFG).forEach(r=>document.getElementById(ROLE_CFG[r].cont).classList.toggle('show',r===role));setNavActive(role,state.screen[role]);window.scrollTo(0,0);renderCurrent();}
 function goHome(){state.role='landing';Object.keys(ROLE_CFG).forEach(r=>document.getElementById(ROLE_CFG[r].cont).classList.remove('show'));document.getElementById('landing').classList.remove('hidden');window.scrollTo(0,0);}
 function setNavActive(role,id){const cfg=ROLE_CFG[role];if(!cfg)return;const nv=document.querySelector('#'+cfg.cont+' .nav');if(nv)nv.querySelectorAll('a[data-screen]').forEach(a=>a.classList.toggle('active',a.dataset.screen===id));}
-function nav(role,id){state.screen[role]=id;setNavActive(role,id);renderCurrent();window.scrollTo(0,0);closeMobNav();}
-function toggleMobNav(btn){const app=btn.closest('.app');app.classList.toggle('mob-nav-open');}
-function closeMobNav(){document.querySelectorAll('.app.mob-nav-open').forEach(a=>a.classList.remove('mob-nav-open'));}
+function nav(role,id){state.screen[role]=id;setNavActive(role,id);renderCurrent();window.scrollTo(0,0);const bar=document.getElementById('mobTabBar_'+role);if(bar)bar.querySelectorAll('.mtb-item').forEach(b=>b.classList.toggle('active',b.dataset.screen===id));}
 function renderCurrent(){const cfg=ROLE_CFG[state.role];if(cfg)renderScreen(state.role,state.screen[state.role],document.getElementById(cfg.main));}
 function renderScreen(role,id,host){const fn=SCREENS[id];host.className='main '+modeClass(id);host.innerHTML=fn?fn(id):stub('Coming soon','This screen is stubbed.');if(id==='p-edp'||id==='c-edp')requestAnimationFrame(initEDPDrag);if(['p-edp','p-prefab','p-proc','p-log','p-profsvc'].includes(id))requestAnimationFrame(initNsDrag);if(id==='p-catalog'){CAT_VIEW='landing';renderCatalog();}if(id==='c-backlog')renderBacklog(BACKLOG_FILTER);if(id==='c-capex')refreshCapex();if(id==='c-billing')billRefresh();requestAnimationFrame(updateCartBadges);}
 function stub(t,d,f){return `<div class="placeholder"><h3>${t}</h3><p>${d}</p>${f?`<div class="feat">${f.map(x=>`<span>${x}</span>`).join('')}</div>`:''}</div>`;}
