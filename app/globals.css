@@ -1031,6 +1031,8 @@
   .co-total span{font-size:12px;color:var(--gray-500)}
   .co-total b{font-family:var(--disp);font-size:18px;color:var(--charcoal)}
   .co-note{font-size:12px;color:var(--gray-500);display:flex;align-items:center;gap:6px;padding:4px 0}
+  .co-cc{height:28px;background:var(--gray-100);color:var(--charcoal);font-size:12px;outline:none;transition:border .15s}
+  .co-cc:focus{border-color:var(--charcoal) !important;background:#fff}
 
   /* mobile-only elements: hidden on desktop/tablet */
   .mob-ham-btn{display:none}
