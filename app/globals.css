@@ -1040,7 +1040,7 @@
     .app.show{grid-template-columns:1fr} .nav{display:none}
     .g3{grid-template-columns:1fr 1fr} .roles{grid-template-columns:1fr}
     .cat-wrap,.browse-wrap,.pb-wrap,.chatwrap,.track-wrap{grid-template-columns:1fr} .prod-grid{grid-template-columns:1fr 1fr}
-    .edp-stats{grid-template-columns:1fr 1fr} .add-grid{grid-template-columns:1fr 1fr} .look{grid-template-columns:1fr}
+    .edp-stats{grid-template-columns:1fr 1fr} .add-grid{grid-template-columns:1fr 1fr}
     .g2-row{grid-template-columns:170px 1fr 70px} #edp-schedule .g2-row{grid-template-columns:170px 1fr 70px 44px} .today-overlay{left:calc(170px + (100% - 240px) * 0.175)}
     .desk-only{display:none !important}
   }
@@ -1060,11 +1060,12 @@
     .app-title{font-size:14px;letter-spacing:.01em;flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;color:#fff}
     .app-title .accent{color:var(--red)}
     .app-title .role-tag{display:none}
-    .modeswitch{gap:3px;flex-shrink:0;background:rgba(255,255,255,.1)}
-    .modeswitch button{padding:4px 9px;font-size:11px;color:rgba(255,255,255,.6)}
-    .modeswitch button.active{background:rgba(255,255,255,.18);color:#fff;box-shadow:none}
-    .modeswitch button.active.ns{color:var(--gold-mid)}
-    .modeswitch .lbl{display:none}
+    .topbar .modeswitch{gap:3px;flex-shrink:0;background:rgba(255,255,255,.1)}
+    .topbar .modeswitch button{padding:4px 9px;font-size:11px;color:rgba(255,255,255,.6)}
+    .topbar .modeswitch button.active{background:rgba(255,255,255,.18);color:#fff;box-shadow:none}
+    .topbar .modeswitch button.active.ns{color:var(--gold-mid)}
+    .topbar .modeswitch .lbl{display:none}
+    .land-top .modeswitch button{font-size:13px;padding:6px 14px}
     .nav-toggle{display:none}
 
     /* Main: offset for fixed topbar */
@@ -1108,6 +1109,8 @@
 
     /* Inputs — 16px minimum prevents iOS auto-zoom on focus */
     input,select,textarea{font-size:16px !important;min-height:44px}
+    .co-body input,.co-body select,.co-body textarea{min-height:40px}
+    .co-nm,.co-amt,.co-dates{font-size:13px !important}
     input[type="date"]{min-height:44px}
     .pill-inp,.lc-input,.mono{font-size:15px !important}
     .field label{font-size:13px;font-weight:600}
@@ -1164,6 +1167,15 @@
     .limit-note{border-radius:14px}
     .ai-panel{border-radius:14px}
     .admin-bar{flex-direction:column;gap:8px;align-items:flex-start}
+
+    /* Landing page mobile */
+    .land-top{flex-direction:column;gap:12px;align-items:flex-start}
+    .land-hero h1{font-size:28px}
+    .land-sub{font-size:14px}
+    .land-foot{display:none}
+    .roles{gap:12px}
+    .role{padding:20px 18px}
+    .mode-explain{flex-direction:column;gap:10px}
 
     /* NS overflow fixes */
     .track-wrap{grid-template-columns:1fr !important;gap:12px}
