@@ -167,13 +167,35 @@ const EQLINES=[
 ];
 let CURRENT_EDP_GROUP='Task code';
 const GROUP_COLORS=['','n2','n3','n4','n5']; // cycles through red, charcoal, blue, gold, rose
-function edpGroups(key){const f=key==='Equipment class'?'cat':key==='Scope'?'phase':'code'; // 'Task code' maps to .codeconst order=[],map={};EQLINES.forEach(l=>{const k=l[f];if(!map[k]){map[k]=[];order.push(k);}map[k].push(l);});
+function edpGroups(key){const f=key==='Equipment class'?'cat':key==='Scope'?'phase':'code';const order=[],map={};EQLINES.forEach(l=>{const k=l[f];if(!map[k]){map[k]=[];order.push(k);}map[k].push(l);});
   return order.map((k,gi)=>{const lines=map[k];const gStart=Math.min.apply(null,lines.map(l=>l.start));const gEnd=Math.max.apply(null,lines.map(l=>l.start+l.span));
-    return {key:k,lines,gi,cls:GROUP_COLORS[gi%GROUP_COLORS.length],cost:'$'+lines.reduce((s,l)=>s+parseInt(l.cost.replace(/[^0-9]/g,'')),0)+'K',peak:Math.max.apply(null,lines.map(l=>l.qty)),gStart,gSpan:gEnd-gStart};});}
+    /* peak concurrent: for each month, sum qty of all lines active that month */
+    let peakConcurrent=0;for(let m=0;m<8;m++){const sum=lines.reduce((s,l)=>m>=l.start&&m<l.start+l.span?s+l.qty:s,0);if(sum>peakConcurrent)peakConcurrent=sum;}
+    return {key:k,lines,gi,cls:GROUP_COLORS[gi%GROUP_COLORS.length],cost:'$'+lines.reduce((s,l)=>s+parseInt(l.cost.replace(/[^0-9]/g,'')),0)+'K',peak:peakConcurrent,gStart,gSpan:gEnd-gStart};});}
 function buildSchedule(key){const gs=edpGroups(key);return `<div class="gantt2"><div class="today-overlay"></div><div class="g2-row head"><div class="g2-left"><span class="sub" style="font-weight:700;color:var(--gray-500)">${key==='Task code'?'Task code / equipment':key==='Equipment class'?'Equipment class / equipment':'Scope / equipment'}</span></div><div class="g2-track">${MONTHS.map(m=>`<span>${m}</span>`).join('')}</div><div class="g2-cost" style="font-size:10px;color:var(--gray-500);text-transform:uppercase;letter-spacing:.05em">Cost</div><div class="g2-act"></div></div>${gs.map(g=>`<div class="g2-row group" onclick="toggleGrp(this)"><div class="g2-left"><span class="nm"><span class="caret">${ic('chevronDown','ic-14')}</span> ${g.key}</span><span class="sub">${g.lines.length} ${g.lines.length===1?'need':'needs'} · peak ${g.peak}</span></div><div class="g2-track"><div class="gbar gbar-agg ${g.cls}" style="left:${(g.gStart/8*100).toFixed(2)}%;width:${(g.gSpan/8*100-1.5).toFixed(2)}%" title="${g.key}: ${MONTHS[g.gStart]}–${MONTHS[Math.min(7,g.gStart+g.gSpan-1)]}"><span class="agglab">${g.key}</span></div></div><div class="g2-cost">${g.cost}</div><div class="g2-act"><button class="gact-all" onclick="event.stopPropagation();addGroupToCart('${g.key.replace(/'/g,"\\'")}',${g.lines.length})" title="Add all ${g.lines.length} to request">${ic('cart','ic-14')} +${g.lines.length}</button></div></div>${g.lines.map(l=>`<div class="g2-row line"><div class="g2-left"><span class="nm">${l.qty}× ${l.nm}</span><span class="sub"><span class="code-chip">${l.code}</span><span class="dates">${MONTHS[l.start]} – ${MONTHS[Math.min(7,l.start+l.span-1)]}</span></span></div><div class="g2-track"><div class="gbar ${g.cls}" data-span="${l.span}" style="left:${(l.start/8*100).toFixed(2)}%;width:${(l.span/8*100-1.5).toFixed(2)}%">${l.qty}×</div></div><div class="g2-cost">${l.cost}</div><div class="g2-act"><button class="gact" onclick="addLineToCart('${l.nm.replace(/'/g,"\\'")}','${l.qty}×')" title="Add to request">${ic('cart','ic-14')}</button></div></div>`).join('')}`).join('')}</div>`;}
 function lineStatus(l){if(l.start===0)return ['ok','On-rent'];if(l.start===1)return ['warn','Pending'];return ['gray','Planned'];}
 function buildList(key){const gs=edpGroups(key);let rows='';gs.forEach(g=>g.lines.forEach(l=>{const [sc,sl]=lineStatus(l);const offBtn=sl==='On-rent'?`<button class="btn ghost sm" style="color:var(--gray-500);white-space:nowrap" onclick="openOffRent('${l.nm.replace(/'/g,"\\'")}')">Call off</button>`:'';rows+=`<tr><td><input type="checkbox" aria-label="select ${l.nm}"></td><td><b>${l.nm}</b></td><td>${l.qty}</td><td><span class="grp-chip" style="background:${grpColorVar(g.cls)}1a;color:${grpColorVar(g.cls)}">${g.key}</span></td><td>${MONTHS[l.start]} 2026</td><td>${MONTHS[Math.min(7,l.start+l.span-1)]}</td><td class="mono">${l.code}</td><td>${l.cost}</td><td><span class="chip ${sc}">${sl}</span></td><td>${offBtn}</td></tr>`;}));return `<div class="list"><table class="mini" style="padding:4px 10px"><tr><th style="width:26px"></th><th>Equipment</th><th>Qty</th><th>Task code</th><th>On-rent</th><th>Off-rent</th><th>Cost code</th><th>Est. cost</th><th>Status</th><th></th></tr>${rows}</table></div><div style="display:flex;gap:8px;margin-top:12px"><button class="btn primary" onclick="promoteSelected()">${ic('send','ic-14')} Promote selected → request</button><button class="btn" onclick="openOffRent()">Call off selected</button></div>`;}
 function grpColorVar(cls){return cls==='n2'?'var(--charcoal)':cls==='n3'?'var(--steel-bright)':cls==='n4'?'var(--gold)':cls==='n5'?'var(--rose)':'var(--red)';}
+function buildDemandRollup(){
+  const classes=[...new Set(EQLINES.map(l=>l.cat))];
+  const data=classes.map(cat=>{
+    const lines=EQLINES.filter(l=>l.cat===cat);
+    const monthly=MONTHS.map((_,m)=>lines.reduce((s,l)=>m>=l.start&&m<l.start+l.span?s+l.qty:s,0));
+    const peak=Math.max(...monthly);const peakMonth=monthly.indexOf(peak);
+    return {cat,lines,monthly,peak,peakMonth};
+  });
+  const globalMax=Math.max(...data.map(d=>d.peak),1);
+  return `<div style="display:flex;flex-direction:column;gap:18px">
+    ${data.map(d=>`<div style="display:flex;align-items:flex-end;gap:14px">
+      <div style="width:88px;font-size:12px;font-weight:600;color:var(--charcoal-700);flex-shrink:0;padding-bottom:20px">${d.cat}</div>
+      <div style="display:flex;gap:3px;align-items:flex-end;flex:1">
+        ${d.monthly.map((v,m)=>{const ht=Math.round(v/globalMax*52);const isPeak=v===d.peak&&d.peak>0;return `<div style="display:flex;flex-direction:column;align-items:center;gap:3px;flex:1"><div style="height:${ht||0}px;min-height:${v>0?3:0}px;background:${isPeak?'var(--red)':v>0?'var(--gray-300)':'transparent'};border-radius:3px 3px 0 0;width:100%" title="${v} unit${v!==1?'s':''} · ${MONTHS[m]}"></div><span style="font-size:9px;color:var(--gray-400)">${MONTHS[m]}</span></div>`;}).join('')}
+      </div>
+      <div style="text-align:right;flex-shrink:0;padding-bottom:20px;min-width:48px"><div style="font-size:20px;font-weight:700;line-height:1;color:${d.peak>1?'var(--charcoal)':'var(--gray-400)'}">${d.peak}</div><div style="font-size:10px;color:var(--gray-500)">peak · ${MONTHS[d.peakMonth]}</div></div>
+    </div>`).join('')}
+    <div style="font-size:11px;color:var(--gray-500);margin-top:-4px">Peak = max concurrent units across all task codes in that class. Same equipment in overlapping task codes is counted once at peak, not summed.</div>
+  </div>`;
+}
 /* North Star: AI-prebuilt equipment plan */
 /* ============ NORTH STAR: unified multi-pillar demand-plan system ============ */
 const NS_MONTHS=['Jun','Jul','Aug','Sep','Oct','Nov','Dec','Jan','Feb'];
@@ -343,7 +365,7 @@ function edpCodeCheck(){const v=(document.getElementById('edpCode').value||'').r
  prev.textContent=v||'—';
  if(digits===16){st.innerHTML=`<span class="chip ok">${ic('check','ic-14')} 16/16</span>`;btn.style.pointerEvents='';btn.style.opacity='';}
  else{st.innerHTML=`<span class="chip red">${digits}/16</span>`;btn.style.pointerEvents='none';btn.style.opacity='.5';}}
-function setEDPGroup(v){CURRENT_EDP_GROUP=v.includes('class')?'Equipment class':v.includes('Scope')?'Scope':'Controlling code';document.getElementById('edp-schedule').innerHTML=buildSchedule(CURRENT_EDP_GROUP);document.getElementById('edp-list').innerHTML=buildList(CURRENT_EDP_GROUP);requestAnimationFrame(initEDPDrag);toast('Grouped by '+CURRENT_EDP_GROUP);}
+function setEDPGroup(v){CURRENT_EDP_GROUP=v.includes('class')?'Equipment class':v.includes('Scope')?'Scope':'Task code';document.getElementById('edp-schedule').innerHTML=buildSchedule(CURRENT_EDP_GROUP);document.getElementById('edp-list').innerHTML=buildList(CURRENT_EDP_GROUP);requestAnimationFrame(initEDPDrag);toast('Grouped by '+CURRENT_EDP_GROUP);}
 function toggleGrp(g){g.classList.toggle('collapsed');let n=g.nextElementSibling;while(n&&!n.classList.contains('group')){if(n.classList.contains('line'))n.classList.toggle('hidden',g.classList.contains('collapsed'));n=n.nextElementSibling;}const c=g.querySelector('.caret');if(c)c.style.transform=g.classList.contains('collapsed')?'rotate(-90deg)':'';}
 function edpView(el,which){el.parentElement.querySelectorAll('button').forEach(b=>b.classList.remove('on'));el.classList.add('on');document.getElementById('edp-schedule').classList.toggle('hidden',which!=='sched');document.getElementById('edp-list').classList.toggle('hidden',which!=='list');}
 function addEq(){document.getElementById('edp-add').classList.toggle('hidden');}
@@ -1721,8 +1743,8 @@ const SCREENS={
    <button class="clink" style="margin-top:12px" onclick="nav('portal','p-orders')">View all orders &amp; requests ${ic('chevronRight','ic-14')}</button>
  </div>
 
- <div class="grid g3" style="margin-top:16px">
-   <div class="card"><div class="ch"><span class="ci k3">${ic('chart','ic-16')}</span><span class="t">Cost by phase</span></div><div style="display:flex;flex-direction:column;gap:10px;font-size:12.5px"><div><div style="display:flex;justify-content:space-between"><span>Structure</span><b>$556K</b></div><div style="height:6px;background:var(--gray-200);border-radius:4px;margin-top:4px"><div style="width:90%;height:100%;background:var(--charcoal);border-radius:4px"></div></div></div><div><div style="display:flex;justify-content:space-between"><span>Sitework & Civil</span><b>$156K</b></div><div style="height:6px;background:var(--gray-200);border-radius:4px;margin-top:4px"><div style="width:42%;height:100%;background:var(--red);border-radius:4px"></div></div></div><div><div style="display:flex;justify-content:space-between"><span>MEP / Electrical</span><b>$89K</b></div><div style="height:6px;background:var(--gray-200);border-radius:4px;margin-top:4px"><div style="width:28%;height:100%;background:var(--steel);border-radius:4px"></div></div></div></div></div>
+ <div class="card" style="margin-top:16px"><div class="ch"><span class="ci k3">${ic('chart','ic-16')}</span><span class="t">Demand by equipment class</span><span class="sub">concurrent units per month · red bar = peak</span></div>${buildDemandRollup()}</div>
+ <div class="grid g2" style="margin-top:12px">
    <div class="card"><div class="ch"><span class="ci k2">${ic('clock','ic-16')}</span><span class="t">Revision history</span></div><table class="mini"><tr><th>Version</th><th>Change</th><th>By</th></tr><tr><td>v4 · current</td><td>Shifted Phase 2 by 3 wks</td><td>Rian</td></tr><tr><td>v3</td><td>Added civil earthwork</td><td>Rian</td></tr></table></div>
    <div class="card"><div class="ch"><span class="ci k4">${ic('dollar','ic-16')}</span><span class="t">Budget variance</span></div><table class="mini"><tr><th>Task code</th><th>Budget</th><th>Act+comm</th><th></th></tr><tr><td class="mono" style="font-size:10px">31210000.3005.2000</td><td>$560K</td><td>$546K</td><td><span class="chip ok">−2%</span></td></tr><tr><td class="mono" style="font-size:10px">26261000.3005.2000</td><td>$540K</td><td>$556K</td><td><span class="chip warn">+3%</span></td></tr></table></div>
  </div>
