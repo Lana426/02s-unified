@@ -70,7 +70,7 @@ function setGlobalMode(m){state.mode=m;state.productMode={};resetBrowseCart();do
 function setProductMode(id,m){if(id==='p-browse'&&effMode('p-browse')!==m)resetBrowseCart();state.productMode[id]=m;renderCurrent();}
 
 /* ================= SHELLS ================= */
-function globalSwitchHTML(){return `<div class="modeswitch"><span class="lbl">View</span><button data-mode="v1" onclick="setGlobalMode('v1')">V1 Scope</button><button data-mode="northstar" class="ns" onclick="setGlobalMode('northstar')">${ic('sparkle','ic-14')} North Star</button></div>`;}
+function globalSwitchHTML(){return `<div class="modeswitch"><span class="lbl">Version:</span><button data-mode="v1" onclick="setGlobalMode('v1')">V1</button><button data-mode="northstar" class="ns" onclick="setGlobalMode('northstar')">${ic('sparkle','ic-14')} North Star</button></div>`;}
 const PORTAL_NAV=[{id:'p-dash',label:'Dashboard',icon:'grid'},{grp:'Order'},{id:'p-catalog',label:'Product catalog',icon:'box'},{id:'p-browse',label:'On-demand browse &amp; checkout',icon:'cart'},{id:'p-orders',label:'Orders',icon:'clipboard'},{id:'p-billing',label:'Billing & budget',icon:'receipt'},{grp:'Demand plans'},{id:'p-edp',label:'Equipment plan',icon:'calendar'},{id:'p-prefab',label:'Prefab plan',icon:'layers'},{id:'p-proc',label:'Procurement plan',icon:'cart'},{id:'p-log',label:'Logistics plan',icon:'truck'},{id:'p-profsvc',label:'Prof. services plan',icon:'team'},{grp:'Project'},{id:'p-profile',label:'Project profile',icon:'gear'},{id:'p-support',label:'Contact & support',icon:'chat'}];
 const COMMAND_NAV_V1=[{id:'c-dash',label:'Overview',icon:'grid'},{id:'c-backlog',label:'Order backlog',icon:'inbox'},{grp:'Demand plans (ops)'},{id:'c-edp',label:'Equipment demand plan',icon:'calendar'},{id:'c-pillars',label:'Other pillar plans',icon:'layers'},{grp:'Planning & controls'},{id:'c-capex',label:'CAPEX plan',icon:'chart'},{id:'c-billing',label:'Billings & invoicing',icon:'receipt'}];
 const COMMAND_NAV_NS=[{id:'c-dash',label:'Overview',icon:'grid'},{id:'c-backlog',label:'Order backlog',icon:'inbox'},{grp:'Demand plans (ops)'},{id:'c-edp',label:'Equipment',icon:'calendar'},{id:'c-pill-prefab',label:'Prefab',icon:'layers'},{id:'c-pill-proc',label:'Procurement',icon:'cart'},{id:'c-pill-log',label:'Logistics',icon:'truck'},{id:'c-pill-profsvc',label:'Prof. services',icon:'team'},{grp:'Planning & controls'},{id:'c-capex',label:'CAPEX plan',icon:'chart'},{id:'c-billing',label:'Billings & invoicing',icon:'receipt'}];
@@ -1435,13 +1435,37 @@ function pillarRequestValidate(name,pc,ns){
  openModal(`<div class="modal-head"><div><h3>Submit ${name} request</h3><div class="sub">${sub}</div></div><button class="x-btn" onclick="closeModal()">${ic('close','ic-16')}</button></div><div class="modal-body co-body">${codeSection}<div class="field"><label>Delivery address</label><select id="pillAddr"><option>${PROJECT.shipTo.line1}, ${PROJECT.shipTo.line2}</option><option>02S yard pickup</option><option>Other (specify in notes)</option></select></div><div class="field-row"><div class="field"><label>Needed by <span class="req">*</span></label><input type="date" id="pillStart" value="2026-09-01"></div><div class="field"><label>End date</label><input type="date" id="pillEnd" value=""></div></div><div class="field"><label>Notes <span style="font-weight:400;color:var(--gray-400)">optional</span></label><textarea id="pillNote" rows="2" placeholder="Any special delivery or site requirements…"></textarea></div></div><div class="modal-foot"><button class="btn" onclick="closeModal()">Cancel</button><button class="btn primary" onclick="closeModal();toast('${ename} request submitted — appears in 02S backlog')">${ic('send','ic-14')} Submit request</button></div>`,true);}
 function pillLineCodeCheck(i,inp){const v=inp.value;const d=codeDigits(v);const st=document.getElementById('pillLineSt'+i);if(st)st.innerHTML=d===16?`<span class="chip ok">${ic('check','ic-14')} 16/16</span>`:`<span class="chip red">${d}/16</span>`;}
 
+/* ================= DASHBOARD — NEEDS YOUR ATTENTION ================= */
+const DASH_ATTENTION=[
+ {id:'billing',ico:'receipt',title:'Billing needs approval',meta:'BILL-9012',due:'2 days left',dueKind:'warning',weight:40,reason:'Approval window closes soon — nothing else is waiting on it.'},
+ {id:'submittal',ico:'file',title:'Prefab submittal due',meta:'L2 headwall shop drawings',due:'Due Thu',dueKind:'warning',weight:80,reason:'Submit by Thursday to hold your Aug 15 delivery slot — missing it pushes delivery out.',ctaLabel:'Review',ctaFn:"openSubmittal()"},
+ {id:'safety',ico:'warning',title:'Safety bulletin — crane lift zone',meta:'Acknowledge before mob',due:'Before mob',dueKind:'warning',weight:60,reason:'Required sign-off before the tower crane can mobilize to site.',ctaLabel:'Review &amp; ack',ctaFn:"openSafetyBulletin()"},
+ {id:'idle',ico:'clock',title:'2× scissor lift idle 6 days',meta:'Low usage on site',due:'Ongoing',dueKind:'warning',weight:95,reason:"Idle equipment bills whether it's used or not.",consequence:'Call off — $1.9K/wk exposure',ctaLabel:'Call off',ctaFn:"openOffRent('2× Scissor lift 32ft')"},
+ {id:'crane',ico:'truck',title:'Tower crane mobilization',meta:'Structure phase · confirm ship-to',due:'In 2 weeks',dueKind:'info',weight:90,reason:'Structural steel is crane-dependent — if steel holds its start, the crane arrives 4 days ahead of need. Confirm ship-to now or shift mobilization to cut idle standby.',ctaLabel:'Add ship-to',ctaFn:"openShipTo()"}
+];
+function dashAttentionEmpty(ns){return `<div class="card span3 attn-wrap"><div class="ch"><span class="ci">${ic('bell','ic-16')}</span><span class="t">Needs your attention</span></div><div class="attn-empty"><span class="ico">${ic('check','ic-18')}</span><span>${ns?"You're all caught up — North Star is watching your schedule.":'Nothing needs your attention right now.'}</span></div></div>`;}
+function dashAttentionV1(){
+ if(!DASH_ATTENTION.length)return dashAttentionEmpty(false);
+ const items=[...DASH_ATTENTION].sort((a,b)=>(a.weight<50?0:1)-(b.weight<50?0:1));
+ return `<div class="card span3 attn-wrap"><div class="ch"><span class="ci">${ic('bell','ic-16')}</span><span class="t">Needs your attention</span></div><div class="attn-list">${items.map(a=>`<div class="attn-row"><span class="attn-ico">${ic(a.ico,'ic-16')}</span><div class="attn-body"><div class="attn-title">${a.title}</div><div class="attn-meta">${a.meta}</div></div><span class="attn-due"><span class="badge badge--${a.dueKind||'neutral'}">${a.due}</span></span></div>`).join('')}</div></div>`;
+}
+function dashAttentionNS(){
+ const top=[...DASH_ATTENTION].sort((a,b)=>b.weight-a.weight).slice(0,3);
+ if(!top.length)return dashAttentionEmpty(true);
+ return `<div class="card span3 attn-wrap"><div class="ch"><span class="ci">${ic('bell','ic-16')}</span><span class="t">Needs your attention</span></div><div class="attn-cards">${top.map((a,i)=>`<div class="attn-card"><div class="ah"><span class="ico${a.consequence?' urgent':''}">${ic(a.ico,'ic-16')}</span><b>${a.title}</b><span class="badge badge--neutral rank">${i===0?'Top priority':'Priority '+(i+1)}</span></div><div class="reason">${a.reason}</div><div class="cta-row">${a.consequence?`<span class="badge badge--urgent">${a.consequence}</span>`:''}${a.ctaFn?`<button class="btn sm ${a.consequence?'urgent':'primary'}" onclick="${a.ctaFn}">${a.ctaLabel}</button>`:''}</div></div>`).join('')}</div></div>`;
+}
+function dashOrderCta(){return `<div class="dash-cta-bar" onclick="nav('portal','p-browse')"><span class="ico">${ic('cart','ic-18')}</span><div><b>Need equipment?</b><span class="sub">Browse &amp; request from the 02S catalog</span></div><span class="go">Browse &amp; request ${ic('chevronRight','ic-14')}</span></div>`;}
+
 /* ================= SCREENS ================= */
 const SCREENS={
 
 'p-dash':(id)=>`
- <div class="page-head"><div><h2>${PROJECT.name}</h2><div class="proj-meta"><span class="proj-tag">${ic('pin','ic-14')} ${PROJECT.city}</span><span class="proj-tag">${ic('clipboard','ic-14')} ${PROJECT.number}</span><span class="proj-tag">${ic('dollar','ic-14')} $180M · Solar + BESS</span><span class="proj-tag v1-only">${ic('layers','ic-14')} V1 — standard</span><span class="proj-tag ns-only">${ic('sparkle','ic-14')} North Star</span></div></div>${prodToggle(id)}</div>
+ <div class="page-head"><div><h2>${PROJECT.name}</h2><div class="proj-meta"><span class="proj-tag">${ic('pin','ic-14')} ${PROJECT.city}</span><span class="proj-tag">${ic('clipboard','ic-14')} <span class="mono">${PROJECT.number}</span></span><span class="proj-tag">${ic('dollar','ic-14')} <span class="mono">$180M</span> · Solar + BESS</span><span class="proj-tag v1-only">${ic('layers','ic-14')} V1 — standard</span><span class="proj-tag ns-only">${ic('sparkle','ic-14')} North Star</span></div></div></div>
+ <div class="v1-only">${dashAttentionV1()}</div>
+ <div class="ns-only">${dashAttentionNS()}</div>
+ ${dashOrderCta()}
  <div class="v1-only">
-   <div class="card span3" style="margin-bottom:16px"><div class="ch"><span class="ci">${ic('calendar','ic-16')}</span><span class="t">3-week lookahead</span><span class="sub">02S touchpoints from your V1 data</span></div>
+   <div class="card span3 dash-section" style="margin-bottom:16px"><div class="ch"><span class="ci">${ic('calendar','ic-16')}</span><span class="t">3-week lookahead</span><span class="sub">02S touchpoints from your V1 data</span></div>
      <div class="look">
        <div class="wk"><h4>This week <span>May 12–18</span></h4>
          <div class="item"><div class="top">${ic('truck','ic-14')} Excavator delivery</div><div class="meta">ORD-3042 · gate 3 · Mon</div></div>
@@ -1449,7 +1473,7 @@ const SCREENS={
        </div>
        <div class="wk"><h4>Next week <span>May 19–25</span></h4>
          <div class="item"><div class="top">${ic('clock','ic-14')} Rental ending</div><div class="meta">Scissor lift · off-rent May 15→confirm</div></div>
-         <div class="item"><div class="top">${ic('check','ic-14')} Order acknowledged</div><div class="meta">SUV AWD · on-rent May 18</div></div>
+         <div class="item"><div class="top"><span style="color:var(--success)">${ic('check','ic-14')}</span> Order acknowledged</div><div class="meta">SUV AWD · on-rent May 18</div></div>
        </div>
        <div class="wk"><h4>In 2 weeks <span>May 26–Jun 1</span></h4>
          <div class="item"><div class="top">${ic('truck','ic-14')} Tower crane mob</div><div class="meta">Planned · Structure phase</div></div>
@@ -1458,12 +1482,12 @@ const SCREENS={
    </div>
  </div>
  <div class="ns-only">
-   <div class="card span3" style="margin-bottom:16px"><div class="ch"><span class="ci">${ic('calendar','ic-16')}</span><span class="t">3-week 02S lookahead</span><span class="sub">tied to your schedule</span><span class="ns-badge" style="margin-left:auto">North Star</span></div>
+   <div class="card span3 dash-section" style="margin-bottom:16px"><div class="ch"><span class="ci">${ic('calendar','ic-16')}</span><span class="t">3-week 02S lookahead</span><span class="sub">tied to your schedule</span><span class="ns-badge" style="margin-left:auto">North Star</span></div>
      <!-- trades × weeks Gantt with a today marker -->
      <div class="la-gantt">
        <div class="la-head"><div class="la-name">Activity</div><div class="la-grid"><span>May 12–18</span><span>May 19–25</span><span>May 26–Jun 1</span><div class="la-today" style="left:16%"><span>Today</span></div></div></div>
        ${[
-         ['Earthwork / grading','var(--red)',0,42,'On track',''],
+         ['Earthwork / grading','var(--gray)',0,42,'On track',''],
          ['Structural steel','var(--charcoal)',18,88,'Crane-dependent','⚠'],
          ['Mechanical rough-in','var(--proc)',52,100,'Starts Wk 2',''],
          ['Electrical rough-in','var(--logistics)',38,92,'On track',''],
@@ -1473,34 +1497,34 @@ const SCREENS={
      <!-- 02S touchpoints ribbon under the gantt -->
      <div class="la-touch">
        <div class="lt-col"><div class="lt-h">This week</div>
-         <div class="lt-item act"><span class="lt-ico" style="background:var(--red-050);color:var(--red)">${ic('truck','ic-14')}</span><div><b>Excavator delivery — confirm receiving</b><span class="lt-m">ORD-3042 · gate 3 · today 10:40a</span></div><span class="owner bic" style="background:var(--steel)">02S</span></div>
-         <div class="lt-item act"><span class="lt-ico" style="background:var(--red-050);color:var(--red)">${ic('clock','ic-14')}</span><div><b>2× scissor lift idle 6 days</b><span class="lt-m">low usage · $1.9K/wk exposure</span></div><button class="btn sm" onclick="openOffRent('2× Scissor lift 32ft')">Call off</button></div>
+         <div class="lt-item"><span class="lt-ico" style="background:var(--gray-100);color:var(--gray-600)">${ic('truck','ic-14')}</span><div><b>Excavator delivery — confirm receiving</b><span class="lt-m"><span class="mono">ORD-3042</span> · gate 3 · today 10:40a</span></div><span class="owner bic" style="background:var(--steel)">02S</span></div>
+         <div class="lt-item urgent"><span class="lt-ico" style="background:var(--red-050);color:var(--red)">${ic('clock','ic-14')}</span><div><b>2× scissor lift idle 6 days</b><span class="lt-m">low usage · $1.9K/wk exposure</span></div><button class="btn sm urgent" onclick="openOffRent('2× Scissor lift 32ft')">Call off</button></div>
        </div>
        <div class="lt-col"><div class="lt-h">Next week</div>
-         <div class="lt-item act"><span class="lt-ico" style="background:var(--prefab-050);color:var(--prefab)">${ic('file','ic-14')}</span><div><b>Prefab submittal due</b><span class="lt-m">L2 headwall shop drawings · Thu</span></div><button class="btn sm" onclick="openSubmittal()">Review</button></div>
+         <div class="lt-item"><span class="lt-ico" style="background:var(--prefab-050);color:var(--prefab)">${ic('file','ic-14')}</span><div><b>Prefab submittal due</b><span class="lt-m">L2 headwall shop drawings · Thu</span></div><button class="btn sm primary" onclick="openSubmittal()">Review</button></div>
          <div class="lt-item"><span class="lt-ico" style="background:var(--proc-050);color:var(--proc)">${ic('cart','ic-14')}</span><div><b>Procurement PO ready</b><span class="lt-m">Safety bundle · 02S issuing</span></div><span class="owner bic" style="background:var(--steel)">02S</span></div>
        </div>
        <div class="lt-col"><div class="lt-h">In 2 weeks</div>
-         <div class="lt-item act"><span class="lt-ico" style="background:var(--red-050);color:var(--red)">${ic('truck','ic-14')}</span><div><b>Tower crane mobilization</b><span class="lt-m">Structure phase · add ship-to?</span></div><button class="btn sm" onclick="openShipTo()">Add ship-to</button></div>
-         <div class="lt-item"><span class="lt-ico" style="background:var(--gold-050);color:var(--gold)">${ic('warning','ic-14')}</span><div><b>Safety bulletin — crane lift zone</b><span class="lt-m">acknowledge before mob</span></div><button class="btn sm" onclick="openSafetyBulletin()">Review &amp; ack</button></div>
+         <div class="lt-item"><span class="lt-ico" style="background:var(--gray-100);color:var(--gray-600)">${ic('truck','ic-14')}</span><div><b>Tower crane mobilization</b><span class="lt-m">Structure phase · add ship-to?</span></div><button class="btn sm primary" onclick="openShipTo()">Add ship-to</button></div>
+         <div class="lt-item"><span class="lt-ico" style="background:var(--gold-050);color:var(--gold)">${ic('warning','ic-14')}</span><div><b>Safety bulletin — crane lift zone</b><span class="lt-m">acknowledge before mob</span></div><button class="btn sm primary" onclick="openSafetyBulletin()">Review &amp; ack</button></div>
        </div>
      </div>
-     <div class="ai-panel" style="margin-top:12px"><div class="aih"><div class="ico">${ic('sparkle','ic-16')}</div><div class="t">Lookahead insight</div></div><div class="ctx" style="margin-bottom:0">Steel is <b>crane-dependent</b> and the tower crane mobilizes Wk 3 — if the structural start holds, the crane arrives 4 days ahead of need. Consider shifting mobilization to reduce idle standby, or pull steel forward.</div></div>
+     <div class="ai-panel neutral" style="margin-top:12px"><div class="aih"><div class="ico">${ic('sparkle','ic-16')}</div><div class="t">Lookahead insight</div></div><div class="ctx" style="margin-bottom:0">Steel is <b>crane-dependent</b> and the tower crane mobilizes Wk 3 — if the structural start holds, the crane arrives 4 days ahead of need. Consider shifting mobilization to reduce idle standby, or pull steel forward.</div></div>
    </div>
  </div>
 
- <div class="grid g3" style="margin-bottom:16px">
-   <div class="card"><div class="ch"><span class="ci k2">${ic('truck','ic-16')}</span><span class="t">Rental roll</span></div><div style="display:flex;align-items:center;gap:16px"><div><div class="bignum">142</div><div class="stat-sub">Active rentals</div></div><div class="donut" style="width:88px;height:88px;background:conic-gradient(var(--red) 0 34%,var(--charcoal) 34% 60%,var(--gold) 60% 76%,var(--gray-300) 76% 100%)"><div class="hole" style="width:58px;height:58px"><b style="font-size:17px">4</b><span>classes</span></div></div></div><button class="clink" onclick="nav('portal','p-orders')">View orders ${ic('chevronRight','ic-14')}</button></div>
-   <div class="card"><div class="ch"><span class="ci k4">${ic('clipboard','ic-16')}</span><span class="t">Demand log</span></div><div style="display:flex;align-items:center;gap:16px"><div><div class="bignum">18</div><div class="stat-sub">Open demands</div></div><div style="font-size:12px;color:var(--charcoal-700)"><div><span class="dot r"></span>Needed this month · 5</div><div><span class="dot g"></span>Next 90 days · 8</div><div><span class="dot o"></span>Later · 5</div></div></div><button class="clink" onclick="nav('portal','p-edp')">Open equipment plan ${ic('chevronRight','ic-14')}</button></div>
-   <div class="card"><div class="ch"><span class="ci k3">${ic('dollar','ic-16')}</span><span class="t">Budget snapshot</span></div><div><div class="bignum">78%</div><div class="stat-sub">of forecast committed</div></div><div style="height:6px;background:var(--gray-200);border-radius:4px;margin-top:12px"><div style="width:78%;height:100%;background:var(--steel);border-radius:4px"></div></div><button class="clink" onclick="nav('portal','p-billing')">View billing &amp; budget ${ic('chevronRight','ic-14')}</button></div>
+ <div class="grid g3 kpi-strip" style="margin-bottom:16px">
+   <div class="kpi-card"><div class="kpi-main"><span class="kpi-num">142</span><div><div class="kpi-lbl">Rental roll</div><div class="kpi-sub">Active rentals · 4 classes</div></div></div><button class="clink" onclick="nav('portal','p-orders')">View orders ${ic('chevronRight','ic-14')}</button></div>
+   <div class="kpi-card"><div class="kpi-main"><span class="kpi-num">18</span><div><div class="kpi-lbl">Demand log</div><div class="kpi-sub">Open demands · 5 this month</div></div></div><button class="clink" onclick="nav('portal','p-edp')">Open equipment plan ${ic('chevronRight','ic-14')}</button></div>
+   <div class="kpi-card"><div class="kpi-main"><span class="kpi-num">78%</span><div><div class="kpi-lbl">Budget snapshot</div><div class="kpi-sub">of forecast committed</div></div></div><button class="clink" onclick="nav('portal','p-billing')">View billing &amp; budget ${ic('chevronRight','ic-14')}</button></div>
  </div>
 
- <div class="card span3"><div class="ch"><span class="ci">${ic('box','ic-16')}</span><span class="t">Latest order status</span><span class="sub">ORD-3042 · click a step's order in Orders for detail</span></div>${trackerHTML(2)}<button class="clink" onclick="nav('portal','p-orders')">Track all orders ${ic('chevronRight','ic-14')}</button></div>
+ <div class="card dash-section" style="max-width:640px;margin-bottom:16px"><div class="ch"><span class="ci">${ic('box','ic-16')}</span><span class="t">Latest order status</span><span class="sub"><span class="mono">ORD-3042</span> · click a step's order in Orders for detail</span></div>${trackerHTML(2)}<button class="clink" onclick="nav('portal','p-orders')">Track all orders ${ic('chevronRight','ic-14')}</button></div>
 
  <div class="ns-only"><div class="grid g3" style="margin-top:16px">
-   <div class="card"><div class="ch"><span class="ci k3">${ic('gauge','ic-16')}</span><span class="t">Equipment on my site</span><span class="ns-badge" style="margin-left:auto">NS</span></div><p style="color:var(--charcoal-700);font-size:12.5px;margin:0 0 6px">Telematics utilization by asset — spot idle units before they bill another week.</p><button class="clink" onclick="toast('Opening utilization (demo)')">Drill into utilization ${ic('chevronRight','ic-14')}</button></div>
-   <div class="card"><div class="ch"><span class="ci k2">${ic('upload','ic-16')}</span><span class="t">Mobile receiving</span><span class="ns-badge" style="margin-left:auto">NS</span></div><p style="color:var(--charcoal-700);font-size:12.5px;margin:0 0 6px">Receive 02S deliveries from the field; feeds OMS and manages ship-to addresses.</p><button class="clink" onclick="toast('Opening receiving (demo)')">Open receiving ${ic('chevronRight','ic-14')}</button></div>
-   <div class="card"><div class="ch"><span class="ci k4">${ic('warning','ic-16')}</span><span class="t">Safety & quality bulletins</span><span class="ns-badge" style="margin-left:auto">NS</span></div><p style="color:var(--charcoal-700);font-size:12.5px;margin:0 0 6px">Acknowledge 02S bulletins relevant to equipment on this job.</p><button class="clink" onclick="toast('Opening bulletins (demo)')">View bulletins ${ic('chevronRight','ic-14')}</button></div>
+   <div class="card"><div class="ch"><span class="ci k3">${ic('gauge','ic-16')}</span><span class="t">Equipment on my site</span><span class="ns-badge" style="margin-left:auto">NS</span></div><p style="color:var(--gray-500);font-size:var(--text-sm);margin:0 0 var(--space-2)">Telematics utilization by asset — spot idle units before they bill another week.</p><button class="clink" onclick="toast('Opening utilization (demo)')">Drill into utilization ${ic('chevronRight','ic-14')}</button></div>
+   <div class="card"><div class="ch"><span class="ci k2">${ic('upload','ic-16')}</span><span class="t">Mobile receiving</span><span class="ns-badge" style="margin-left:auto">NS</span></div><p style="color:var(--gray-500);font-size:var(--text-sm);margin:0 0 var(--space-2)">Receive 02S deliveries from the field; feeds OMS and manages ship-to addresses.</p><button class="clink" onclick="toast('Opening receiving (demo)')">Open receiving ${ic('chevronRight','ic-14')}</button></div>
+   <div class="card"><div class="ch"><span class="ci k4">${ic('warning','ic-16')}</span><span class="t">Safety & quality bulletins</span><span class="ns-badge" style="margin-left:auto">NS</span></div><p style="color:var(--gray-500);font-size:var(--text-sm);margin:0 0 var(--space-2)">Acknowledge 02S bulletins relevant to equipment on this job.</p><button class="clink" onclick="toast('Opening bulletins (demo)')">View bulletins ${ic('chevronRight','ic-14')}</button></div>
  </div></div>
 `,
 
